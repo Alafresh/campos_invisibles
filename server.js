@@ -13,7 +13,7 @@ app.use(express.static('public'));
 
 // Configuración del puerto serial En Raspberry Pi ttyACM0 
 
-const portName = '/dev/ttyACM0'; 
+const portName = '/dev/ttyUSB0'; 
 
 const serialPort = new SerialPort({ path: portName, baudRate: 115200 }, (err) => {
   if (err) {
