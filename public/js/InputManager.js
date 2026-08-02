@@ -36,10 +36,12 @@ export class InputManager {
 
             let user = this.users[i];
 
-            // --- NUEVO: Filtro Deadzone del 15% ---
+            // --- FILTRO DEADZONE Y CORRECCIÓN DE EJE Y ---
             const DEADZONE = 0.15;
             let normX = (values[0] - 512) / 512;
-            let normY = (values[1] - 512) / 512;
+            
+            // Invertimos el eje Y colocando el signo negativo (-) al inicio
+            let normY = -(values[1] - 512) / 512;
 
             user.joystick.x = Math.abs(normX) < DEADZONE ? 0 : normX;
             user.joystick.y = Math.abs(normY) < DEADZONE ? 0 : normY;

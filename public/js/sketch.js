@@ -4,7 +4,7 @@ import { InputManager } from './InputManager.js';
 import { Particle } from './Particle.js';
 import { Attractor } from './Attractor.js';
 import { PhysicsManager } from './PhysicsManager.js';
-import { PRESET_TYPES, getForcePreset } from './Presets.js';
+import { getNextSequentialPreset, getForcePreset } from './Presets.js';
 
 let socket;
 let inputManager;
@@ -31,9 +31,8 @@ window.setup = function() {
     userAttractors.push(new Attractor(1, width * 0.50, height * 0.5, '#33CCFF'));
     userAttractors.push(new Attractor(2, width * 0.75, height * 0.5, '#66FF66'));
 
-    // --- NUEVO: TEMPORIZADOR DE MUTACIÓN ---
-    // Cambia el preset cada 3 minutos (3 * 60 * 1000 milisegundos)
-    setInterval(changeRandomPreset, 3 * 60 * 1000); 
+    // --- NUEVO: TEMPORIZADOR DE MUTACIÓN (Cada 1 Minuto) ---
+    setInterval(changeRandomPreset, 1 * 60 * 1000);
 };
 
 window.draw = function() {
@@ -118,20 +117,6 @@ window.draw = function() {
     drawDebug();
 };
 
-function injectParticles(attractor) {
-    // Inyectar 10 partículas de especie aleatoria desde el núcleo
-    for (let i = 0; i < 10; i++) {
-        let species = int(random(CONFIG.NUM_SPECIES));
-        let newP = new Particle(attractor.pos.x, attractor.pos.y, species);
-        // Explosión inicial pequeña
-        newP.vel = p5.Vector.random2D().mult(4); 
-        stardust.push(newP);
-    }
-    // Límite de seguridad para RPi
-    if (stardust.length > CONFIG.TOTAL_PARTICLES * 1.5) {
-        stardust.splice(0, 10);
-    }
-}
 
 function drawDebug() {
     fill(255);
@@ -141,18 +126,13 @@ function drawDebug() {
     text(`Stardust: ${stardust.length} | FPS: ${int(frameRate())}`, 10, height - 20);
 }
 
-// Esta función elige una regla aleatoria y cambia el ecosistema en vivo
 function changeRandomPreset() {
-    // Obtenemos un array con todos los IDs numéricos de los presets
-    const presetIds = Object.values(PRESET_TYPES);
+    // Obtiene el siguiente preset respetando estrictamente el patrón cíclico
+    const nextPresetId = getNextSequentialPreset(); 
     
-    // Elegimos un ID al azar
-    const randomId = random(presetIds); 
+    CONFIG.INTERACTION_MATRIX = getForcePreset(nextPresetId, CONFIG.NUM_SPECIES);
     
-    // Generamos la nueva matriz y se la inyectamos a la simulación
-    CONFIG.INTERACTION_MATRIX = getForcePreset(randomId, CONFIG.NUM_SPECIES);
-    
-    console.log(`[Cuna de Mundos] Ecosistema mutado automáticamente. Nuevo preset ID: ${randomId}`);
+    console.log(`[Cuna de Mundos] Ecosistema mutado en secuencia. Preset ID: ${nextPresetId}`);
 }
 
 function explodeParticles(attractor, isOverload, currentEncRaw) {
