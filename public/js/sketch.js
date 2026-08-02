@@ -5,7 +5,9 @@ import { Particle } from './Particle.js';
 import { Attractor } from './Attractor.js';
 import { PhysicsManager } from './PhysicsManager.js';
 import { getNextSequentialPreset, getForcePreset } from './Presets.js';
+import { AudioManager } from './AudioManager.js';
 
+let audioManager;
 let socket;
 let inputManager;
 let physicsManager;
@@ -32,6 +34,7 @@ window.setup = function() {
     
     socket = io();
     inputManager = new InputManager(socket);
+    audioManager = new AudioManager();
     physicsManager = new PhysicsManager();
 
     for (let i = 0; i < CONFIG.TOTAL_PARTICLES; i++) {
@@ -43,7 +46,7 @@ window.setup = function() {
     userAttractors.push(new Attractor(1, width * 0.50, height * 0.5, '#33CCFF'));
     userAttractors.push(new Attractor(2, width * 0.75, height * 0.5, '#66FF66'));
 
-    setInterval(changeRandomPreset, 1 * 60 * 1000);
+    setInterval(changeRandomPreset, 1 * 30 * 1000);
 };
 
 window.draw = function() {
@@ -73,7 +76,11 @@ window.draw = function() {
 
     userAttractors.forEach((attractor, i) => {
         let rawEnc = inputManager.getEncoderVal(i);
-        
+        let joyVec = inputManager.getJoystickVec(i);
+        let isBtnPressed = inputManager.isButtonTriggered(i);
+        if (!audioManager.isInitialized && (joyVec.magSq() > 0 || isBtnPressed)) {
+            audioManager.init();
+        }
         attractor.update(inputManager.getJoystickVec(i), rawEnc);
         attractor.display();
 
@@ -145,7 +152,9 @@ function changeRandomPreset() {
     if (bgImages.length > 0) {
         currentBg = random(bgImages);
     }
-    
+    if (audioManager) {
+        audioManager.playVoiceOver();
+    }
     console.log(`[Cuna de Mundos] Ecosistema mutado en secuencia. Preset ID: ${nextPresetId}`);
 }
 

@@ -7,8 +7,8 @@ export class AudioManager {
         this.ambientMusic.volume = 0.4; // Volumen moderado de fondo
 
         // Voz en off conceptual
-        this.voiceOver = new Audio('../audio/space-shuttle.mp3');
-        this.voiceOver.volume = 0.8;
+        this.voiceOver = new Audio('../audio/Voz_en_Off.mp3');
+        this.voiceOver.volume = 1;
 
         this.isInitialized = false;
     }
