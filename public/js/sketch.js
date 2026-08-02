@@ -19,6 +19,10 @@ let bgImages = [];
 let currentBg;
 
 window.setup = function() {
+    // --- OPTIMIZACIÓN HARDWARE RASPBERRY PI ---
+    // Fuerza la densidad de píxeles a 1 para liberar carga de procesamiento en la GPU
+    pixelDensity(1);
+    
     createCanvas(windowWidth, windowHeight);
     ellipseMode(CENTER);
     
@@ -35,7 +39,7 @@ window.setup = function() {
     socket = io();
     inputManager = new InputManager(socket);
     physicsManager = new PhysicsManager();
-    audioManager = new AudioManager(); // Inicializar gestor de audio
+    audioManager = new AudioManager(); 
 
     for (let i = 0; i < CONFIG.TOTAL_PARTICLES; i++) {
         let species = int(random(CONFIG.NUM_SPECIES)); 
@@ -54,7 +58,7 @@ window.setup = function() {
         if (audioManager && audioManager.isInitialized) {
             audioManager.playVoiceOver();
         }
-    }, 2 * 60 * 1000);
+    }, 3 * 60 * 1000);
 };
 
 window.draw = function() {
@@ -82,7 +86,6 @@ window.draw = function() {
         let joyVec = inputManager.getJoystickVec(i);
         let isBtnPressed = inputManager.isButtonTriggered(i);
 
-        // Desbloqueo de audio con la primera interacción física del hardware
         if (!audioManager.isInitialized && (joyVec.magSq() > 0 || isBtnPressed)) {
             audioManager.init();
         }

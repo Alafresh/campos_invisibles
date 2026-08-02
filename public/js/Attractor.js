@@ -43,7 +43,7 @@ export class Attractor {
                 this.idleFrames = 0;
             } else {
                 this.idleFrames++;
-                if (this.idleFrames > 180) { 
+                if (this.idleFrames > 600) { 
                     this.isAwake = false;
                 }
             }
