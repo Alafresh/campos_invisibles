@@ -38,7 +38,7 @@ window.setup = function() {
 
 window.draw = function() {
     // Fondo oscuro con leve rastro (Alpha poético)
-    background(10, 10, 20, 25); 
+    background(0, 0, 0, 45); 
 
     push(); // Guardamos el estado original del lienzo
     if (shakeTime > 0) {
@@ -52,20 +52,18 @@ window.draw = function() {
 
     // === RENDERIZADO / DIBUJO ===
     
-    // 2. Dibujar y gestionar Atractores de Usuario
     userAttractors.forEach((attractor, i) => {
         
-        attractor.update(inputManager.getJoystickVec(i), inputManager.getEncoderVal(i));
+        let rawEnc = inputManager.getEncoderVal(i); // Obtenemos el valor crudo actual
+        
+        attractor.update(inputManager.getJoystickVec(i), rawEnc);
         attractor.display();
 
         if (attractor.isAwake) {
             
-            // A. LÓGICA DE ABSORCIÓN 
             for (let j = stardust.length - 1; j >= 0; j--) {
                 let p = stardust[j];
                 let distSq = (p.pos.x - attractor.pos.x)**2 + (p.pos.y - attractor.pos.y)**2;
-                
-                // Mantenemos el radio pequeño para el efecto visual de succión al centro
                 let captureRadius = 5; 
                 
                 if (distSq < captureRadius * captureRadius) {
@@ -74,21 +72,16 @@ window.draw = function() {
                 }
             }
 
-            // B. LÓGICA DE DISPARO Y EXPLOSIÓN
             if (attractor.trappedParticles >= attractor.maxCapacity) {
-                // Explosión masiva incontrolable por límite de capacidad
-                explodeParticles(attractor, true); 
+                explodeParticles(attractor, true, rawEnc); // Pasamos rawEnc aquí
                 
             } else if (inputManager.isButtonTriggered(i)) {
-                // --- VOLVEMOS AL BOTÓN ORIGINAL ---
-                // Disparo manual controlado, usando las partículas atrapadas
                 if (attractor.trappedParticles > 0) {
-                    explodeParticles(attractor, false); 
+                    explodeParticles(attractor, false, rawEnc); // Y aquí también
                 }
             }
             
         } else {
-            // C. LÓGICA DE AUTOLIMPIEZA (Estado Dormido)
             if (attractor.trappedParticles > 0 && frameCount % 3 === 0) {
                 attractor.trappedParticles--;
                 let species = int(random(CONFIG.NUM_SPECIES));
@@ -131,7 +124,7 @@ function injectParticles(attractor) {
         let species = int(random(CONFIG.NUM_SPECIES));
         let newP = new Particle(attractor.pos.x, attractor.pos.y, species);
         // Explosión inicial pequeña
-        newP.vel = p5.Vector.random2D().mult(2); 
+        newP.vel = p5.Vector.random2D().mult(4); 
         stardust.push(newP);
     }
     // Límite de seguridad para RPi
@@ -162,16 +155,14 @@ function changeRandomPreset() {
     console.log(`[Cuna de Mundos] Ecosistema mutado automáticamente. Nuevo preset ID: ${randomId}`);
 }
 
-function explodeParticles(attractor, isOverload) {
-    // Si se sobrecargó, expulsa todo. Si disparó el botón, expulsa ráfagas de 15.
+function explodeParticles(attractor, isOverload, currentEncRaw) {
     let amountToShoot = isOverload ? attractor.trappedParticles : Math.min(15, attractor.trappedParticles);
     
     for (let i = 0; i < amountToShoot; i++) {
         let species = int(random(CONFIG.NUM_SPECIES));
         let newP = new Particle(attractor.pos.x, attractor.pos.y, species);
         
-        // La explosión por sobrecarga dispara las partículas con más fuerza
-        let explosionForce = isOverload ? random(8, 15) : random(3, 6);
+        let explosionForce = isOverload ? random(15, 25) : random(8, 15);
         newP.vel = p5.Vector.random2D().mult(explosionForce); 
         
         stardust.push(newP);
@@ -179,13 +170,14 @@ function explodeParticles(attractor, isOverload) {
     
     attractor.trappedParticles -= amountToShoot;
     
-    // --- LÓGICA DEL DESTELLO Y REPOSO ---
     if (isOverload) {
         attractor.flashAlpha = 255; 
         attractor.cooldown = 120; 
-        
-        // NUEVO: Dispara 25 frames de temblor violento en toda la instalación
         shakeTime = 25; 
+        
+        // --- REINICIO DEL ENCODER ---
+        // Esto frena el bucle infinito al sincronizar el cero virtual con la posición actual del hardware
+        attractor.encoderOffset = currentEncRaw; 
     }
 }
 
