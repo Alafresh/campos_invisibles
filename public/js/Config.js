@@ -5,7 +5,7 @@ const NUM_SPECIES = 7;
 
 export const CONFIG = {
     // Especificaciones del Ecosistema
-    TOTAL_PARTICLES: 1200, 
+    TOTAL_PARTICLES: 1250, 
     NUM_SPECIES: NUM_SPECIES,
     PARTICLE_MIN_MASS: 0.5,
     PARTICLE_MAX_MASS: 1.2,
@@ -13,7 +13,7 @@ export const CONFIG = {
     // Parámetros de Física Poética
     FRICTION: 0.46,           
     G_MACRO: 1.5,             
-    MAX_ATTRACTOR_MASS: 300,  
+    MAX_ATTRACTOR_MASS: 400,  
     MIN_ATTRACTOR_MASS: 20,
     
     // Parámetros Particle Life (Micro)

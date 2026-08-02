@@ -56,10 +56,18 @@ export class Attractor {
             this.acc.mult(0); 
         }
 
-        if (this.pos.x < 0) { this.pos.x = 0; this.vel.x = 0; } 
-        else if (this.pos.x > width) { this.pos.x = width; this.vel.x = 0; }
-        if (this.pos.y < 0) { this.pos.y = 0; this.vel.y = 0; } 
-        else if (this.pos.y > height) { this.pos.y = height; this.vel.y = 0; }
+        // --- WRAP-AROUND DE PANTALLA (TELEPORT CONTINUO) ---
+        if (this.pos.x < 0) {
+            this.pos.x = width;
+        } else if (this.pos.x > width) {
+            this.pos.x = 0;
+        }
+
+        if (this.pos.y < 0) {
+            this.pos.y = height;
+        } else if (this.pos.y > height) {
+            this.pos.y = 0;
+        }
 
         // --- 1. CÁLCULO NETO DEL ENCODER (Sin límites superiores) ---
         let netEncoder = encVal - this.encoderOffset;
@@ -77,31 +85,60 @@ export class Attractor {
     }
 
     display() {
-        // Al no tener límite superior, limitamos visualmente el radio máximo en pantalla para que no rompa el diseño
-        let visualSize = map(this.mass, CONFIG.MIN_ATTRACTOR_MASS, 500, 20, 150, true);
-        
-        let fillRatio = constrain(this.trappedParticles / this.maxCapacity, 0, 1);
+    let visualSize = map(this.mass, CONFIG.MIN_ATTRACTOR_MASS, 500, 20, 150, true);
+    let fillRatio = constrain(this.trappedParticles / this.maxCapacity, 0, 1);
 
+    push();
+    colorMode(HSB, 360, 100, 100, 255);
+    let h = hue(this.color);
+    let s = map(fillRatio, 0, 1, 40, 100);
+    let b = 100;
+    let a = this.isAwake ? map(fillRatio, 0, 1, 100, 255) : 50;
+
+    // --- EFECTO NEON: halo detras del circulo principal ---
+    this.drawNeonGlow(h, s, a, visualSize);
+
+    fill(h, s, b, a);
+    noStroke();
+    circle(this.pos.x, this.pos.y, visualSize);
+    pop();
+
+    fill(0, this.isAwake ? 255 : 80);
+    noStroke();
+    circle(this.pos.x, this.pos.y, 5);
+
+    if (this.flashAlpha > 0) {
+        fill(255, this.flashAlpha);
+        noStroke();
+        circle(this.pos.x, this.pos.y, visualSize * 2.5);
+    }
+}
+
+    drawNeonGlow(h, s, baseAlpha, visualSize) {
         push();
-        colorMode(HSB, 360, 100, 100, 255);
-        let h = hue(this.color);
-        let s = map(fillRatio, 0, 1, 40, 100);
-        let b = 100; 
-        let a = this.isAwake ? map(fillRatio, 0, 1, 100, 255) : 50;
+        translate(this.pos.x, this.pos.y);
+        rotate(frameCount * 0.02); // gira el halo, igual que el disco de acreccion
 
-        fill(h, s, b, a);
+        let layers = 8;
         noStroke();
-        circle(this.pos.x, this.pos.y, visualSize);
-        pop();
-        
-        fill(0, this.isAwake ? 255 : 80);
-        noStroke();
-        circle(this.pos.x, this.pos.y, 5);
 
-        if (this.flashAlpha > 0) {
-            fill(255, this.flashAlpha); 
-            noStroke();
-            circle(this.pos.x, this.pos.y, visualSize * 2.5);
+        for (let i = layers; i >= 1; i--) {
+            // radio creciente por capa
+            let rOuter = map(i, 1, layers, visualSize * 0.55, visualSize * 1.8);
+            let layerAlpha = (baseAlpha / layers) * (1 - i / (layers + 2));
+
+            fill(h, s, 100, layerAlpha);
+            // ancho y alto distintos = elipse aplanada, como el disco de acreccion
+            ellipse(0, 0, rOuter * 2, rOuter * 0.9);
         }
+
+        // anillo fino brillante en el borde, tambien elipsado
+        stroke(h, s * 0.5, 100, baseAlpha);
+        strokeWeight(0.5);
+        noFill();
+        ellipse(0, 0, visualSize * 1.05, visualSize * 0.95);
+        noStroke();
+
+        pop();
     }
 }

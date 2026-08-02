@@ -11,7 +11,7 @@ let inputManager;
 let physicsManager;
 let stardust = [];
 let userAttractors = [];
-let shakeTime = 0; // NUEVA VARIABLE
+let shakeTime = 0;
 
 // Configuración p5.js global (Requerido para ES6 modules en p5)
 window.setup = function() {
@@ -31,7 +31,7 @@ window.setup = function() {
     userAttractors.push(new Attractor(1, width * 0.50, height * 0.5, '#33CCFF'));
     userAttractors.push(new Attractor(2, width * 0.75, height * 0.5, '#66FF66'));
 
-    // --- NUEVO: TEMPORIZADOR DE MUTACIÓN (Cada 1 Minuto) ---
+    // --- TEMPORIZADOR DE MUTACIÓN (Cada 1 Minuto) ---
     setInterval(changeRandomPreset, 1 * 60 * 1000);
 };
 
@@ -50,16 +50,13 @@ window.draw = function() {
     physicsManager.applyFrictionlessPhysics(stardust, userAttractors);
 
     // === RENDERIZADO / DIBUJO ===
-    
     userAttractors.forEach((attractor, i) => {
-        
-        let rawEnc = inputManager.getEncoderVal(i); // Obtenemos el valor crudo actual
+        let rawEnc = inputManager.getEncoderVal(i);
         
         attractor.update(inputManager.getJoystickVec(i), rawEnc);
         attractor.display();
 
         if (attractor.isAwake) {
-            
             for (let j = stardust.length - 1; j >= 0; j--) {
                 let p = stardust[j];
                 let distSq = (p.pos.x - attractor.pos.x)**2 + (p.pos.y - attractor.pos.y)**2;
@@ -72,11 +69,10 @@ window.draw = function() {
             }
 
             if (attractor.trappedParticles >= attractor.maxCapacity) {
-                explodeParticles(attractor, true, rawEnc); // Pasamos rawEnc aquí
-                
+                explodeParticles(attractor, true, rawEnc); 
             } else if (inputManager.isButtonTriggered(i)) {
                 if (attractor.trappedParticles > 0) {
-                    explodeParticles(attractor, false, rawEnc); // Y aquí también
+                    explodeParticles(attractor, false, rawEnc); 
                 }
             }
             
@@ -93,30 +89,22 @@ window.draw = function() {
 
     // 3. Dibujar Stardust con Mezcla Aditiva
     blendMode(ADD); 
-    
     for (let particle of stardust) {
         particle.display(); 
     }
-    
     blendMode(BLEND); 
 
+    pop(); // Restauramos el lienzo tras el Screen Shake
+
     // === INTEGRACIÓN (Mover entidades al final) ===
-    
-    // 4. Aplicar aceleraciones calculadas en el punto 1 y mover partículas.
+    // 4. Aplicar aceleraciones y mover partículas (el wrap-around ya ocurre dentro de particle.integrate())
     for (let particle of stardust) {
         particle.integrate(); 
-        
-        // Wrap-around poético de pantalla (no rebote)
-        if (particle.pos.x < 0) particle.pos.x = width;
-        if (particle.pos.x > width) particle.pos.x = 0;
-        if (particle.pos.y < 0) particle.pos.y = height;
-        if (particle.pos.y > height) particle.pos.y = 0;
     }
     
     // Mostrar info técnica opcional
     drawDebug();
 };
-
 
 function drawDebug() {
     fill(255);
@@ -127,11 +115,8 @@ function drawDebug() {
 }
 
 function changeRandomPreset() {
-    // Obtiene el siguiente preset respetando estrictamente el patrón cíclico
     const nextPresetId = getNextSequentialPreset(); 
-    
     CONFIG.INTERACTION_MATRIX = getForcePreset(nextPresetId, CONFIG.NUM_SPECIES);
-    
     console.log(`[Cuna de Mundos] Ecosistema mutado en secuencia. Preset ID: ${nextPresetId}`);
 }
 
@@ -154,9 +139,6 @@ function explodeParticles(attractor, isOverload, currentEncRaw) {
         attractor.flashAlpha = 255; 
         attractor.cooldown = 120; 
         shakeTime = 25; 
-        
-        // --- REINICIO DEL ENCODER ---
-        // Esto frena el bucle infinito al sincronizar el cero virtual con la posición actual del hardware
         attractor.encoderOffset = currentEncRaw; 
     }
 }

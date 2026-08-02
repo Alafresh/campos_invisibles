@@ -27,6 +27,19 @@ export class Particle {
         // Newton: p = p + v*dt (dt=1)
         this.pos.add(this.vel);
         
+        // --- WRAP-AROUND / TELEPORT CONTINUO ---
+        if (this.pos.x < 0) {
+            this.pos.x = width;
+        } else if (this.pos.x > width) {
+            this.pos.x = 0;
+        }
+
+        if (this.pos.y < 0) {
+            this.pos.y = height;
+        } else if (this.pos.y > height) {
+            this.pos.y = 0;
+        }
+        
         // Reset de aceleración para el próximo frame
         this.acc.mult(0); 
     }
