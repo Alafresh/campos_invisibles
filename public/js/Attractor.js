@@ -12,12 +12,13 @@ export class Attractor {
         this.color = color(colorCode);
         this.joystickSensitivity = 0.8; 
         
-        this.trappedParticles = 0;
-        this.baseCapacity = 180;     // Capacidad base cuando es pequeño
-        this.maxCapacity = 180;      // Capacidad dinámica actual
+        // Almacena los objetos partícula reales
+        this.orbitingParticles = [];
         
-        // --- SOLUCIÓN AL ENCODER ---
-        this.encoderOffset = 0;     // Captura el "cero virtual" tras una explosión
+        this.baseCapacity = 180;     
+        this.maxCapacity = 180;      
+        
+        this.encoderOffset = 0;     
         
         this.isAwake = false;
         this.idleFrames = 0;
@@ -56,26 +57,14 @@ export class Attractor {
             this.acc.mult(0); 
         }
 
-        // --- WRAP-AROUND DE PANTALLA (TELEPORT CONTINUO) ---
-        if (this.pos.x < 0) {
-            this.pos.x = width;
-        } else if (this.pos.x > width) {
-            this.pos.x = 0;
-        }
+        if (this.pos.x < 0) { this.pos.x = width; } 
+        else if (this.pos.x > width) { this.pos.x = 0; }
+        if (this.pos.y < 0) { this.pos.y = height; } 
+        else if (this.pos.y > height) { this.pos.y = 0; }
 
-        if (this.pos.y < 0) {
-            this.pos.y = height;
-        } else if (this.pos.y > height) {
-            this.pos.y = 0;
-        }
-
-        // --- 1. CÁLCULO NETO DEL ENCODER (Sin límites superiores) ---
         let netEncoder = encVal - this.encoderOffset;
-        // La masa crece indefinidamente a partir del mínimo
         this.mass = CONFIG.MIN_ATTRACTOR_MASS + Math.max(0, netEncoder * 2.5);
 
-        // --- 2. INESTABILIDAD: MÁS MASA = MENOS CAPACIDAD ---
-        // Entre más grande sea el atractor, menor cantidad de partículas soporta antes de estallar
         let massFactor = (this.mass - CONFIG.MIN_ATTRACTOR_MASS);
         this.maxCapacity = Math.max(10, this.baseCapacity - (massFactor * 0.3));
 
@@ -85,60 +74,85 @@ export class Attractor {
     }
 
     display() {
-    let visualSize = map(this.mass, CONFIG.MIN_ATTRACTOR_MASS, 500, 20, 150, true);
-    let fillRatio = constrain(this.trappedParticles / this.maxCapacity, 0, 1);
+        let visualSize = map(this.mass, CONFIG.MIN_ATTRACTOR_MASS, 500, 20, 150, true);
+        
+        let fillRatio = constrain(this.orbitingParticles.length / this.maxCapacity, 0, 1);
 
-    push();
-    colorMode(HSB, 360, 100, 100, 255);
-    let h = hue(this.color);
-    let s = map(fillRatio, 0, 1, 40, 100);
-    let b = 100;
-    let a = this.isAwake ? map(fillRatio, 0, 1, 100, 255) : 50;
+        push();
+        colorMode(HSB, 360, 100, 100, 255);
+        let h = hue(this.color);
+        let s = map(fillRatio, 0, 1, 40, 100);
+        // Este valor sube de 100 a 255 según se va llenando de partículas
+        let dynamicAlpha = this.isAwake ? map(fillRatio, 0, 1, 100, 255) : 50;
 
-    // --- EFECTO NEON: halo detras del circulo principal ---
-    this.drawNeonGlow(h, s, a, visualSize);
+        // 1. Dibujar el disco de acreción exterior
+        this.drawNeonGlow(h, s, dynamicAlpha, visualSize);
 
-    fill(h, s, b, a);
-    noStroke();
-    circle(this.pos.x, this.pos.y, visualSize);
-    pop();
+        // 2. DIBUJAR PARTÍCULAS ORBITANDO
+        push();
+        translate(this.pos.x, this.pos.y);
+        rotate(frameCount * 0.015 + this.id); 
+        blendMode(ADD); 
+        
+        for (let p of this.orbitingParticles) {
+            p.orbitAngle += p.orbitSpeed;
+            
+            let px = cos(p.orbitAngle) * p.orbitRadius;
+            let py = sin(p.orbitAngle) * p.orbitRadius * 0.55;
 
-    fill(0, this.isAwake ? 255 : 80);
-    noStroke();
-    circle(this.pos.x, this.pos.y, 5);
+            let pxPrev = cos(p.orbitAngle - p.orbitSpeed * 4) * p.orbitRadius;
+            let pyPrev = sin(p.orbitAngle - p.orbitSpeed * 4) * p.orbitRadius * 0.55;
 
-    if (this.flashAlpha > 0) {
-        fill(255, this.flashAlpha);
-        noStroke();
-        circle(this.pos.x, this.pos.y, visualSize * 2.5);
+            stroke(p.color); 
+            strokeWeight(2);
+            line(pxPrev, pyPrev, px, py);
+        }
+        pop();
+
+        // 3. Dibujar el horizonte de sucesos (Agujero Negro)
+        fill(0); 
+        
+        // --- CAMBIO AQUÍ: Usamos dynamicAlpha en el stroke del borde ---
+        stroke(h, 100, 100, dynamicAlpha); 
+        strokeWeight(3.5); 
+        circle(this.pos.x, this.pos.y, visualSize);
+        pop();
+
+        // Destello por sobrecarga
+        if (this.flashAlpha > 0) {
+            push();
+            colorMode(HSB, 360, 100, 100, 255);
+            fill(h, 30, 100, this.flashAlpha * 0.4);
+            noStroke();
+            circle(this.pos.x, this.pos.y, visualSize * 3.2);
+
+            fill(255, this.flashAlpha); 
+            circle(this.pos.x, this.pos.y, visualSize * 1.5);
+            pop();
+        }
     }
-}
 
     drawNeonGlow(h, s, baseAlpha, visualSize) {
         push();
         translate(this.pos.x, this.pos.y);
-        rotate(frameCount * 0.02); // gira el halo, igual que el disco de acreccion
+        rotate(frameCount * 0.015 + this.id); 
 
-        let layers = 8;
+        let layers = 6;
         noStroke();
 
         for (let i = layers; i >= 1; i--) {
-            // radio creciente por capa
-            let rOuter = map(i, 1, layers, visualSize * 0.55, visualSize * 1.8);
-            let layerAlpha = (baseAlpha / layers) * (1 - i / (layers + 2));
+            let rOuter = map(i, 1, layers, visualSize * 0.6, visualSize * 2.0);
+            let layerAlpha = (baseAlpha / layers) * (1 - i / (layers + 2)) * 0.7;
 
             fill(h, s, 100, layerAlpha);
-            // ancho y alto distintos = elipse aplanada, como el disco de acreccion
-            ellipse(0, 0, rOuter * 2, rOuter * 0.9);
+            ellipse(0, 0, rOuter * 2, rOuter * 0.55);
         }
 
-        // anillo fino brillante en el borde, tambien elipsado
-        stroke(h, s * 0.5, 100, baseAlpha);
-        strokeWeight(0.5);
+        stroke(h, s * 0.6, 100, baseAlpha * 0.8);
+        strokeWeight(1.5);
         noFill();
-        ellipse(0, 0, visualSize * 1.05, visualSize * 0.95);
-        noStroke();
-
+        ellipse(0, 0, visualSize * 1.4, visualSize * 0.75);
+        
         pop();
     }
 }

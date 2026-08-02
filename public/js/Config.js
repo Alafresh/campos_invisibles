@@ -25,7 +25,7 @@ export const CONFIG = {
     PARTICLE_SIZE: 3,
     PARTICLE_ALPHA: 180,       
     COLORS: [
-        '#FF3366', '#33CCFF', '#66FF66', '#FFFF99', '#CC99FF', '#FF9933', '#FFFFFF'
+        '#FF3366', '#00FFFF', '#39FF14', '#FCFF00', '#FF3EA5', '#FF5F1F', '#BC13FE'
     ],
     
     // La matriz ahora vive dentro de CONFIG para poder sobreescribirla cada 3 minutos

@@ -13,7 +13,6 @@ let stardust = [];
 let userAttractors = [];
 let shakeTime = 0;
 
-// Configuración p5.js global (Requerido para ES6 modules en p5)
 window.setup = function() {
     createCanvas(windowWidth, windowHeight);
     ellipseMode(CENTER);
@@ -31,25 +30,20 @@ window.setup = function() {
     userAttractors.push(new Attractor(1, width * 0.50, height * 0.5, '#33CCFF'));
     userAttractors.push(new Attractor(2, width * 0.75, height * 0.5, '#66FF66'));
 
-    // --- TEMPORIZADOR DE MUTACIÓN (Cada 1 Minuto) ---
     setInterval(changeRandomPreset, 1 * 60 * 1000);
 };
 
 window.draw = function() {
-    // Fondo oscuro con leve rastro (Alpha poético)
     background(0, 0, 0, 45); 
 
-    push(); // Guardamos el estado original del lienzo
+    push(); 
     if (shakeTime > 0) {
-        // Sacudida aleatoria en los ejes X e Y
         translate(random(-10, 10), random(-10, 10)); 
         shakeTime--;
     }
 
-    // === LÓGICA / MATEMÁTICAS (Physics Update) ===
     physicsManager.applyFrictionlessPhysics(stardust, userAttractors);
 
-    // === RENDERIZADO / DIBUJO ===
     userAttractors.forEach((attractor, i) => {
         let rawEnc = inputManager.getEncoderVal(i);
         
@@ -57,52 +51,59 @@ window.draw = function() {
         attractor.display();
 
         if (attractor.isAwake) {
+            
+            // --- LÓGICA DE CAPTURA (Se extraen de stardust y se inician sus órbitas) ---
             for (let j = stardust.length - 1; j >= 0; j--) {
                 let p = stardust[j];
                 let distSq = (p.pos.x - attractor.pos.x)**2 + (p.pos.y - attractor.pos.y)**2;
                 let captureRadius = 5; 
                 
                 if (distSq < captureRadius * captureRadius) {
-                    stardust.splice(j, 1); 
-                    attractor.trappedParticles++;
+                    let capturedParticle = stardust.splice(j, 1)[0]; 
+                    
+                    // Asignar parámetros visuales para la órbita (Disco de acreción)
+                    let visualSize = map(attractor.mass, CONFIG.MIN_ATTRACTOR_MASS, 500, 20, 150, true);
+                    capturedParticle.orbitAngle = random(TWO_PI);
+                    capturedParticle.orbitRadius = random(visualSize * 0.7, visualSize * 2.2);
+                    capturedParticle.orbitSpeed = random(0.03, 0.1);
+                    
+                    attractor.orbitingParticles.push(capturedParticle);
                 }
             }
 
-            if (attractor.trappedParticles >= attractor.maxCapacity) {
+            // Validar límites usando la longitud del arreglo
+            if (attractor.orbitingParticles.length >= attractor.maxCapacity) {
                 explodeParticles(attractor, true, rawEnc); 
             } else if (inputManager.isButtonTriggered(i)) {
-                if (attractor.trappedParticles > 0) {
+                if (attractor.orbitingParticles.length > 0) {
                     explodeParticles(attractor, false, rawEnc); 
                 }
             }
             
         } else {
-            if (attractor.trappedParticles > 0 && frameCount % 3 === 0) {
-                attractor.trappedParticles--;
-                let species = int(random(CONFIG.NUM_SPECIES));
-                let newP = new Particle(attractor.pos.x, attractor.pos.y, species);
-                newP.vel = p5.Vector.random2D().mult(random(0.2, 0.8)); 
-                stardust.push(newP);
+            // Autolimpieza (Retorna partículas lentamente si el atractor duerme)
+            if (attractor.orbitingParticles.length > 0 && frameCount % 3 === 0) {
+                let p = attractor.orbitingParticles.pop();
+                p.pos.x = attractor.pos.x;
+                p.pos.y = attractor.pos.y;
+                p.vel = p5.Vector.random2D().mult(random(0.2, 0.8)); 
+                stardust.push(p);
             }
         }
     });
 
-    // 3. Dibujar Stardust con Mezcla Aditiva
     blendMode(ADD); 
     for (let particle of stardust) {
         particle.display(); 
     }
     blendMode(BLEND); 
 
-    pop(); // Restauramos el lienzo tras el Screen Shake
+    pop(); 
 
-    // === INTEGRACIÓN (Mover entidades al final) ===
-    // 4. Aplicar aceleraciones y mover partículas (el wrap-around ya ocurre dentro de particle.integrate())
     for (let particle of stardust) {
         particle.integrate(); 
     }
     
-    // Mostrar info técnica opcional
     drawDebug();
 };
 
@@ -121,19 +122,21 @@ function changeRandomPreset() {
 }
 
 function explodeParticles(attractor, isOverload, currentEncRaw) {
-    let amountToShoot = isOverload ? attractor.trappedParticles : Math.min(15, attractor.trappedParticles);
+    let amountToShoot = isOverload ? attractor.orbitingParticles.length : Math.min(15, attractor.orbitingParticles.length);
     
+    // --- LÓGICA DE LIBERACIÓN (Se devuelven los objetos exactos a stardust) ---
     for (let i = 0; i < amountToShoot; i++) {
-        let species = int(random(CONFIG.NUM_SPECIES));
-        let newP = new Particle(attractor.pos.x, attractor.pos.y, species);
+        let p = attractor.orbitingParticles.shift(); // Extraer de la órbita
         
-        let explosionForce = isOverload ? random(15, 25) : random(8, 15);
-        newP.vel = p5.Vector.random2D().mult(explosionForce); 
+        // Reposicionar en el centro para que salgan disparadas desde el núcleo
+        p.pos.x = attractor.pos.x;
+        p.pos.y = attractor.pos.y;
         
-        stardust.push(newP);
+        let explosionForce = isOverload ? random(35, 55) : random(25, 35);
+        p.vel = p5.Vector.random2D().mult(explosionForce); 
+        
+        stardust.push(p); // Reinsertar a la matriz de simulación activa
     }
-    
-    attractor.trappedParticles -= amountToShoot;
     
     if (isOverload) {
         attractor.flashAlpha = 255; 
