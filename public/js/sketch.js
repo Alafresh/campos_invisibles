@@ -13,10 +13,27 @@ let stardust = [];
 let userAttractors = [];
 let shakeTime = 0;
 
+let bgImages = [];
+let currentBg;
+
+// Eliminamos window.preload por completo
+
 window.setup = function() {
     createCanvas(windowWidth, windowHeight);
     ellipseMode(CENTER);
-
+    
+    // --- SOLUCIÓN DEFINITIVA: Carga asíncrona segura para módulos ES6 ---
+    let paths = ['images/SkyBox_1_169.png', 'images/SkyBox_2_169.png', 'images/SkyBox_3_169.png'];
+    paths.forEach(path => {
+        loadImage(path, (img) => {
+            bgImages.push(img);
+            // En cuanto cargue la primera imagen, la asignamos para que se muestre de inmediato
+            if (!currentBg) {
+                currentBg = img;
+            }
+        });
+    });
+    
     socket = io();
     inputManager = new InputManager(socket);
     physicsManager = new PhysicsManager();
@@ -30,12 +47,22 @@ window.setup = function() {
     userAttractors.push(new Attractor(1, width * 0.50, height * 0.5, '#33CCFF'));
     userAttractors.push(new Attractor(2, width * 0.75, height * 0.5, '#66FF66'));
 
-    setInterval(changeRandomPreset, 1 * 60 * 1000);
+    setInterval(changeRandomPreset, 1 * 10 * 1000);
+    
 };
 
 window.draw = function() {
-    background(0, 0, 0, 45); 
-
+    background(0, 0, 0, 50); 
+    
+    // Solo dibujará cuando la imagen haya terminado de descargar asíncronamente
+    if (currentBg && currentBg.width > 0) {
+        push();
+        // Subí el Alpha a 80 para que la veas. Si es muy invasiva, bájalo de nuevo a 30 o 40.
+        tint(255, 40); 
+        image(currentBg, 0, 0, width, height);
+        pop();
+    }
+    
     push(); 
     if (shakeTime > 0) {
         translate(random(-10, 10), random(-10, 10)); 
@@ -52,7 +79,6 @@ window.draw = function() {
 
         if (attractor.isAwake) {
             
-            // --- LÓGICA DE CAPTURA (Se extraen de stardust y se inician sus órbitas) ---
             for (let j = stardust.length - 1; j >= 0; j--) {
                 let p = stardust[j];
                 let distSq = (p.pos.x - attractor.pos.x)**2 + (p.pos.y - attractor.pos.y)**2;
@@ -61,7 +87,6 @@ window.draw = function() {
                 if (distSq < captureRadius * captureRadius) {
                     let capturedParticle = stardust.splice(j, 1)[0]; 
                     
-                    // Asignar parámetros visuales para la órbita (Disco de acreción)
                     let visualSize = map(attractor.mass, CONFIG.MIN_ATTRACTOR_MASS, 500, 20, 150, true);
                     capturedParticle.orbitAngle = random(TWO_PI);
                     capturedParticle.orbitRadius = random(visualSize * 0.7, visualSize * 2.2);
@@ -71,7 +96,6 @@ window.draw = function() {
                 }
             }
 
-            // Validar límites usando la longitud del arreglo
             if (attractor.orbitingParticles.length >= attractor.maxCapacity) {
                 explodeParticles(attractor, true, rawEnc); 
             } else if (inputManager.isButtonTriggered(i)) {
@@ -81,7 +105,6 @@ window.draw = function() {
             }
             
         } else {
-            // Autolimpieza (Retorna partículas lentamente si el atractor duerme)
             if (attractor.orbitingParticles.length > 0 && frameCount % 3 === 0) {
                 let p = attractor.orbitingParticles.pop();
                 p.pos.x = attractor.pos.x;
@@ -118,24 +141,28 @@ function drawDebug() {
 function changeRandomPreset() {
     const nextPresetId = getNextSequentialPreset(); 
     CONFIG.INTERACTION_MATRIX = getForcePreset(nextPresetId, CONFIG.NUM_SPECIES);
+    
+    // Cambia el fondo aleatoriamente solo si las imágenes ya cargaron en memoria
+    if (bgImages.length > 0) {
+        currentBg = random(bgImages);
+    }
+    
     console.log(`[Cuna de Mundos] Ecosistema mutado en secuencia. Preset ID: ${nextPresetId}`);
 }
 
 function explodeParticles(attractor, isOverload, currentEncRaw) {
     let amountToShoot = isOverload ? attractor.orbitingParticles.length : Math.min(15, attractor.orbitingParticles.length);
     
-    // --- LÓGICA DE LIBERACIÓN (Se devuelven los objetos exactos a stardust) ---
     for (let i = 0; i < amountToShoot; i++) {
-        let p = attractor.orbitingParticles.shift(); // Extraer de la órbita
+        let p = attractor.orbitingParticles.shift(); 
         
-        // Reposicionar en el centro para que salgan disparadas desde el núcleo
         p.pos.x = attractor.pos.x;
         p.pos.y = attractor.pos.y;
         
         let explosionForce = isOverload ? random(35, 55) : random(25, 35);
         p.vel = p5.Vector.random2D().mult(explosionForce); 
         
-        stardust.push(p); // Reinsertar a la matriz de simulación activa
+        stardust.push(p); 
     }
     
     if (isOverload) {
