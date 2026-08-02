@@ -18,8 +18,8 @@ export class InputManager {
 
     setupSocketListeners() {
         // Asume que server.js envía 'serialData' con el formato definido anteriormente
-        this.socket.on('serialData', (datacruda) => {
-            this.parseHardwareData(cruda);
+        this.socket.on('serialData', (dataCruda) => {
+            this.parseHardwareData(dataCruda);
         });
     }
 

@@ -1,9 +1,8 @@
 // js/PhysicsManager.js
-import { CONFIG, INTERACTION_MATRIX } from './Config.js';
+import { CONFIG} from './Config.js';
 
 export class PhysicsManager {
     constructor() {
-        this.interactionMatrix = INTERACTION_MATRIX;
         // Reutilización de vectores para evitar Garbage Collection masivo en RPi
         this.tempVec = createVector(0, 0); 
     }
@@ -90,16 +89,14 @@ export class PhysicsManager {
         let r_norm = dist / CONFIG.R_MAX;
         
         if (r_norm < CONFIG.BETA) {
-            // 1. Repulsión universal cercana (independiente de especie)
-            // Escala linealmente de repulsión máxima a cero en Beta.
+            // 1. Repulsión universal cercana
             return r_norm / CONFIG.BETA - 1;
         } else {
-            // 2. Atracción/Repulsión según la matriz 7x7
-            // Valor de matriz normalizado (m). m > 0 atracción, m < 0 repulsión.
-            let m = INTERACTION_MATRIX[speciesA][speciesB];
+            // 2. Atracción/Repulsión según la matriz dinámica
+            // AHORA LO LEEMOS DIRECTAMENTE DE CONFIG
+            let m = CONFIG.INTERACTION_MATRIX[speciesA][speciesB];
             
-            // Escala lineal de Beta (0) a R_MAX (0) con pico en medio.
-            // Factor de damping lineal para que la fuerza desaparezca en R_MAX
+            // Factor de damping lineal
             let scale = 1 - Math.abs(2 * r_norm - 1 - CONFIG.BETA) / (1 - CONFIG.BETA);
             return m * scale;
         }

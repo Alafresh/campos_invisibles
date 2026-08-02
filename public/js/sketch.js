@@ -4,6 +4,7 @@ import { InputManager } from './InputManager.js';
 import { Particle } from './Particle.js';
 import { Attractor } from './Attractor.js';
 import { PhysicsManager } from './PhysicsManager.js';
+import { PRESET_TYPES, getForcePreset } from './Presets.js';
 
 let socket;
 let inputManager;
@@ -14,30 +15,24 @@ let userAttractors = [];
 // Configuración p5.js global (Requerido para ES6 modules en p5)
 window.setup = function() {
     createCanvas(windowWidth, windowHeight);
-    // Usar WEBGL en RPi puede ser más lento que P2D para círculos simples, 
-    // pero permite mejores blendModes. Empezaremos en P2D por defecto.
-    
-    // Importante: No llamar a funciones p5 globales fuera de setup/draw
     ellipseMode(CENTER);
 
-    // 1. Inicializar Comunicación (Requiere socket.io.js precargado en HTML)
     socket = io();
-    
-    // 2. Inicializar Mánagers
     inputManager = new InputManager(socket);
     physicsManager = new PhysicsManager();
 
-    // 3. Crear el universo (Stardust)
     for (let i = 0; i < CONFIG.TOTAL_PARTICLES; i++) {
-        // Especie aleatoria entre 0 y 6
         let species = int(random(CONFIG.NUM_SPECIES)); 
         stardust.push(new Particle(random(width), random(height), species));
     }
 
-    // 4. Crear a los 3 Atractores de Usuario
     userAttractors.push(new Attractor(0, width * 0.25, height * 0.5, '#FF3366'));
     userAttractors.push(new Attractor(1, width * 0.50, height * 0.5, '#33CCFF'));
     userAttractors.push(new Attractor(2, width * 0.75, height * 0.5, '#66FF66'));
+
+    // --- NUEVO: TEMPORIZADOR DE MUTACIÓN ---
+    // Cambia el preset cada 3 minutos (3 * 60 * 1000 milisegundos)
+    setInterval(changeRandomPreset, 3 * 60 * 1000); 
 };
 
 window.draw = function() {
@@ -111,6 +106,19 @@ function drawDebug() {
     textSize(12);
     textAlign(LEFT, TOP);
     text(`Stardust: ${stardust.length} | FPS: ${int(frameRate())}`, 10, height - 20);
+}
+// Esta función elige una regla aleatoria y cambia el ecosistema en vivo
+function changeRandomPreset() {
+    // Obtenemos un array con todos los IDs numéricos de los presets
+    const presetIds = Object.values(PRESET_TYPES);
+    
+    // Elegimos un ID al azar
+    const randomId = random(presetIds); 
+    
+    // Generamos la nueva matriz y se la inyectamos a la simulación
+    CONFIG.INTERACTION_MATRIX = getForcePreset(randomId, CONFIG.NUM_SPECIES);
+    
+    console.log(`[Cuna de Mundos] Ecosistema mutado automáticamente. Nuevo preset ID: ${randomId}`);
 }
 
 window.windowResized = function() {
