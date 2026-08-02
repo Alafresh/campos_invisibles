@@ -42,31 +42,60 @@ window.draw = function() {
     // === LÓGICA / MATEMÁTICAS (Physics Update) ===
     
     // 1. Calcular Física N-body pairwise (O(N^2)) y Macro.
-    // Esto llena las aceleraciones (p.acc) sin moverlas aún.
     physicsManager.applyFrictionlessPhysics(stardust, userAttractors);
 
     // === RENDERIZADO / DIBUJO ===
     
-    // 2. Dibujar Atractores de Usuario (sobre el polvo)
-    userAttractors.forEach((atractor, i) => {
-        // Actualizar atractor según hardware limpio
-        atractor.update(inputManager.getJoystickVec(i), inputManager.getEncoderVal(i));
-        atractor.display();
+    // 2. Dibujar y gestionar Atractores de Usuario
+    // CORRECCIÓN: Se unifica la variable a "attractor" con doble 't'
+    userAttractors.forEach((attractor, i) => {
+        attractor.update(inputManager.getJoystickVec(i), inputManager.getEncoderVal(i));
+        attractor.display();
 
-        // Lógica de inyección de partículas (Pulsador)
-        if (inputManager.isButtonTriggered(i)) {
-            injectParticles(atractor);
+        if (attractor.isAwake) {
+            // A. LÓGICA DE ABSORCIÓN (Solo si está despierto)
+            for (let j = stardust.length - 1; j >= 0; j--) {
+                let p = stardust[j];
+                let distSq = (p.pos.x - attractor.pos.x)**2 + (p.pos.y - attractor.pos.y)**2;
+                
+                let captureRadius = attractor.mass * 0.4; 
+                
+                if (distSq < captureRadius * captureRadius) {
+                    stardust.splice(j, 1); 
+                    attractor.trappedParticles++;
+                }
+            }
+
+            // B. LÓGICA DE DISPARO Y EXPLOSIÓN
+            if (attractor.trappedParticles >= attractor.maxCapacity) {
+                explodeParticles(attractor, true); 
+            } else if (inputManager.isButtonTriggered(i) && attractor.trappedParticles > 0) {
+                explodeParticles(attractor, false); 
+            }
+            
+        } else {
+            // C. LÓGICA DE AUTOLIMPIEZA (Estado Dormido)
+            // Si está inactivo y tiene partículas, suelta una lentamente cada varios frames
+            if (attractor.trappedParticles > 0 && frameCount % 3 === 0) {
+                attractor.trappedParticles--;
+                let species = int(random(CONFIG.NUM_SPECIES));
+                // CORRECCIÓN: Aquí estaba el error de tipeo
+                let newP = new Particle(attractor.pos.x, attractor.pos.y, species);
+                // Las suelta con mucha delicadeza, sin explotar
+                newP.vel = p5.Vector.random2D().mult(random(0.2, 0.8)); 
+                stardust.push(newP);
+            }
         }
     });
 
     // 3. Dibujar Stardust con Mezcla Aditiva
-    blendMode(ADD); // Crítico para la estética de "Cuna de Mundos"
+    blendMode(ADD); 
     
     for (let particle of stardust) {
-        particle.display(); // Dibuja la entidad en pos.x, pos.y
+        particle.display(); 
     }
     
-    blendMode(BLEND); // Restaurar para el fondo del próximo frame
+    blendMode(BLEND); 
 
     // === INTEGRACIÓN (Mover entidades al final) ===
     
@@ -107,6 +136,7 @@ function drawDebug() {
     textAlign(LEFT, TOP);
     text(`Stardust: ${stardust.length} | FPS: ${int(frameRate())}`, 10, height - 20);
 }
+
 // Esta función elige una regla aleatoria y cambia el ecosistema en vivo
 function changeRandomPreset() {
     // Obtenemos un array con todos los IDs numéricos de los presets
@@ -119,6 +149,34 @@ function changeRandomPreset() {
     CONFIG.INTERACTION_MATRIX = getForcePreset(randomId, CONFIG.NUM_SPECIES);
     
     console.log(`[Cuna de Mundos] Ecosistema mutado automáticamente. Nuevo preset ID: ${randomId}`);
+}
+
+function explodeParticles(attractor, isOverload) {
+    // Si se sobrecargó, expulsa todo. Si disparó el botón, expulsa ráfagas de 15.
+    let amountToShoot = isOverload ? attractor.trappedParticles : Math.min(15, attractor.trappedParticles);
+    
+    for (let i = 0; i < amountToShoot; i++) {
+        let species = int(random(CONFIG.NUM_SPECIES));
+        let newP = new Particle(attractor.pos.x, attractor.pos.y, species);
+        
+        // La explosión por sobrecarga dispara las partículas con más fuerza
+        let explosionForce = isOverload ? random(8, 15) : random(3, 6);
+        newP.vel = p5.Vector.random2D().mult(explosionForce); 
+        
+        stardust.push(newP);
+    }
+    
+    attractor.trappedParticles -= amountToShoot;
+    
+    // --- LÓGICA DEL DESTELLO Y REPOSO ---
+    if (isOverload) {
+        // Dispara el destello visual al 100% de opacidad
+        attractor.flashAlpha = 255; 
+        
+        // Forzar reposo (120 frames = ~2 segundos a 60 FPS)
+        // Durante este tiempo, el atractor soltará el joystick y dejará de atraer partículas
+        attractor.cooldown = 120; 
+    }
 }
 
 window.windowResized = function() {

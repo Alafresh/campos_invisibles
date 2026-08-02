@@ -8,54 +8,96 @@ export class Attractor {
         this.vel = createVector(0, 0);
         this.acc = createVector(0, 0);
         
-        // Curaduría artística: masa inicial y color fijo
         this.mass = 100; 
         this.color = color(colorCode);
-        
-        // Inercia del atractor (difícil de mover para el usuario)
         this.joystickSensitivity = 0.8; 
+        
+        this.trappedParticles = 0;
+        this.maxCapacity = 80; 
+        
+        this.isAwake = false;
+        this.idleFrames = 0;
+        this.lastEncVal = 0;
+        
+        // --- NUEVAS VARIABLES PARA EXPLOSIÓN ---
+        this.cooldown = 0;       // Temporizador de reposo forzado
+        this.flashAlpha = 0;     // Transparencia del destello
     }
 
-   // Aplica las señales limpias del InputManager
     update(joyVec, encVal) {
-        // 1. Movimiento vía Joystick (Inercia)
-        this.acc.add(joyVec.mult(this.joystickSensitivity));
-        
-        this.vel.mult(0.92); // Damping específico para atractores
-        this.vel.add(this.acc);
-        this.pos.add(this.vel);
-        this.acc.mult(0); // Reset
+        // 1. Gestión de estado (Reposo Forzado vs Activo)
+        if (this.cooldown > 0) {
+            // Si acaba de explotar, está en reposo forzado
+            this.cooldown--;
+            this.isAwake = false;
+            // Ignoramos el joystick, pero aplicamos fricción para que frene suavemente
+            this.vel.mult(0.92);
+            this.pos.add(this.vel);
+        } else {
+            // Lógica normal de activación si no está en cooldown
+            let isInputActive = (joyVec.magSq() > 0) || (encVal !== this.lastEncVal);
+            this.lastEncVal = encVal;
 
-        // --- NUEVO: Límites de pantalla estrictos ---
-        if (this.pos.x < 0) { 
-            this.pos.x = 0; 
-            this.vel.x = 0; // Elimina inercia residual
-        } else if (this.pos.x > width) { 
-            this.pos.x = width; 
-            this.vel.x = 0; 
+            if (isInputActive) {
+                this.isAwake = true;
+                this.idleFrames = 0;
+            } else {
+                this.idleFrames++;
+                if (this.idleFrames > 180) { // ~3 segundos de inactividad
+                    this.isAwake = false;
+                }
+            }
+
+            // Movimiento
+            if (this.isAwake) {
+                this.acc.add(joyVec.mult(this.joystickSensitivity));
+            }
+            this.vel.mult(0.92); 
+            this.vel.add(this.acc);
+            this.pos.add(this.vel);
+            this.acc.mult(0); 
         }
 
-        if (this.pos.y < 0) { 
-            this.pos.y = 0; 
-            this.vel.y = 0; 
-        } else if (this.pos.y > height) { 
-            this.pos.y = height; 
-            this.vel.y = 0; 
-        }
+        // 2. Límites de pantalla
+        if (this.pos.x < 0) { this.pos.x = 0; this.vel.x = 0; } 
+        else if (this.pos.x > width) { this.pos.x = width; this.vel.x = 0; }
+        if (this.pos.y < 0) { this.pos.y = 0; this.vel.y = 0; } 
+        else if (this.pos.y > height) { this.pos.y = height; this.vel.y = 0; }
 
-        // 2. Control de Masa vía Encoder
         this.mass = map(encVal, -50, 50, CONFIG.MIN_ATTRACTOR_MASS, CONFIG.MAX_ATTRACTOR_MASS, true);
+        
+        // 3. Desvanecer el destello de la explosión
+        if (this.flashAlpha > 0) {
+            this.flashAlpha -= 15; // Velocidad del destello (mayor número = más rápido)
+        }
     }
 
     display() {
-        // Visualización del núcleo de gravedad
+        let currentSize = map(this.mass, CONFIG.MIN_ATTRACTOR_MASS, CONFIG.MAX_ATTRACTOR_MASS, 20, 60);
+        
+        this.color.setAlpha(this.isAwake ? 255 : 80);
+        
         fill(this.color);
         noStroke();
-        // El tamaño visual depende de la masa controlada por encoder
-        circle(this.pos.x, this.pos.y, map(this.mass, CONFIG.MIN_ATTRACTOR_MASS, CONFIG.MAX_ATTRACTOR_MASS, 20, 60));
+        circle(this.pos.x, this.pos.y, currentSize);
         
-        // Núcleo negro para contraste
-        fill(0);
+        if (this.trappedParticles > 0) {
+            noFill();
+            stroke(255, this.isAwake ? 150 : 50);
+            strokeWeight(3);
+            let overloadRatio = this.trappedParticles / this.maxCapacity;
+            arc(this.pos.x, this.pos.y, currentSize + 15, currentSize + 15, 0, TWO_PI * overloadRatio);
+        }
+        
+        fill(0, this.isAwake ? 255 : 80);
+        noStroke();
         circle(this.pos.x, this.pos.y, 5);
+
+        // --- NUEVO: Renderizado del destello poético ---
+        if (this.flashAlpha > 0) {
+            fill(255, this.flashAlpha); // Círculo blanco con transparencia
+            noStroke();
+            circle(this.pos.x, this.pos.y, currentSize * 3.5);
+        }
     }
 }

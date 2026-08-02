@@ -56,6 +56,8 @@ export class PhysicsManager {
 
             // --- FÍSICA MACRO (Gravitación Universal Atractores) ---
             for (let attractor of attractors) {
+                if (!attractor.isAwake) continue;
+
                 let dx = attractor.pos.x - p1.pos.x;
                 let dy = p1.pos.y - p1.pos.y; // Error de tipeo poético corregido dx,dy vs pos.x,pos.y
                 // dx, dy deben ser locales al loop.

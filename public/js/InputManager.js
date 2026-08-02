@@ -24,7 +24,6 @@ export class InputManager {
     }
 
     parseHardwareData(data) {
-        // Formato esperado: U1:512,500,14,0|U2:512,500,0,1|U3:512,500,-5,0
         let usersData = data.split('|');
         if (usersData.length !== 3) return;
 
@@ -32,19 +31,21 @@ export class InputManager {
             let parts = usersData[i].split(':');
             if (parts.length !== 2) continue;
             
-            let values = parts[1].split(',').map(Number); // [X, Y, Enc, Btn]
+            let values = parts[1].split(',').map(Number);
             if (values.length !== 4) continue;
 
             let user = this.users[i];
 
-            // 1. Normalizar Joystick (0-1023 -> -1 a 1)
-            user.joystick.x = (values[0] - 512) / 512;
-            user.joystick.y = (values[1] - 512) / 512;
+            // --- NUEVO: Filtro Deadzone del 15% ---
+            const DEADZONE = 0.15;
+            let normX = (values[0] - 512) / 512;
+            let normY = (values[1] - 512) / 512;
 
-            // 2. Encoder crudo
+            user.joystick.x = Math.abs(normX) < DEADZONE ? 0 : normX;
+            user.joystick.y = Math.abs(normY) < DEADZONE ? 0 : normY;
+
             user.encoder = values[2];
 
-            // 3. Lógica de botón con detección de flanco de subida
             let currentBtnState = (values[3] === 1);
             user.buttonTriggered = (currentBtnState && !user.buttonPressed);
             user.buttonPressed = currentBtnState;
