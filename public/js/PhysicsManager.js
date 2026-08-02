@@ -56,26 +56,18 @@ export class PhysicsManager {
 
             // --- FÍSICA MACRO (Gravitación Universal Atractores) ---
             for (let attractor of attractors) {
-                if (!attractor.isAwake) continue;
+                // Volvemos a solo verificar si está despierto
+                if (!attractor.isAwake) continue; 
 
-                let dx = attractor.pos.x - p1.pos.x;
-                let dy = p1.pos.y - p1.pos.y; // Error de tipeo poético corregido dx,dy vs pos.x,pos.y
-                // dx, dy deben ser locales al loop.
-                dx = attractor.pos.x - p1.pos.x;
-                dy = attractor.pos.y - p1.pos.y;
-
-                let distSq = dx*dx + dy*dy;
-                // Evitar división por cero y "Zoomies effect" a muy corta distancia
-                let safeDistSq = Math.max(distSq, 100); 
-
-                // Ley de Newton simplificada: F = G * (M * m) / r^2
-                // Aceleración macro para p1 (a = F/m -> a = G * M / r^2)
-                let magMacro = (CONFIG.G_MACRO * attractor.mass) / safeDistSq;
+                let adx = attractor.pos.x - p1.pos.x;
+                let ady = attractor.pos.y - p1.pos.y;
+                let adistSq = Math.max(adx*adx + ady*ady, 100); 
+                let magMacro = (CONFIG.G_MACRO * attractor.mass) / adistSq;
                 
-                let dist = Math.sqrt(safeDistSq);
+                let adist = Math.sqrt(adistSq);
                 
-                totalAccMacro.x += (dx / dist) * magMacro;
-                totalAccMacro.y += (dy / dist) * magMacro;
+                totalAccMacro.x += (adx / adist) * magMacro;
+                totalAccMacro.y += (ady / adist) * magMacro;
             }
 
             // --- SUMA DE FUERZAS POÉTICAS ---

@@ -47,18 +47,21 @@ window.draw = function() {
     // === RENDERIZADO / DIBUJO ===
     
     // 2. Dibujar y gestionar Atractores de Usuario
-    // CORRECCIÓN: Se unifica la variable a "attractor" con doble 't'
+    // 2. Dibujar y gestionar Atractores de Usuario
     userAttractors.forEach((attractor, i) => {
+        
         attractor.update(inputManager.getJoystickVec(i), inputManager.getEncoderVal(i));
         attractor.display();
 
         if (attractor.isAwake) {
-            // A. LÓGICA DE ABSORCIÓN (Solo si está despierto)
+            
+            // A. LÓGICA DE ABSORCIÓN 
             for (let j = stardust.length - 1; j >= 0; j--) {
                 let p = stardust[j];
                 let distSq = (p.pos.x - attractor.pos.x)**2 + (p.pos.y - attractor.pos.y)**2;
                 
-                let captureRadius = attractor.mass * 0.4; 
+                // Mantenemos el radio pequeño para el efecto visual de succión al centro
+                let captureRadius = 5; 
                 
                 if (distSq < captureRadius * captureRadius) {
                     stardust.splice(j, 1); 
@@ -68,20 +71,23 @@ window.draw = function() {
 
             // B. LÓGICA DE DISPARO Y EXPLOSIÓN
             if (attractor.trappedParticles >= attractor.maxCapacity) {
+                // Explosión masiva incontrolable por límite de capacidad
                 explodeParticles(attractor, true); 
-            } else if (inputManager.isButtonTriggered(i) && attractor.trappedParticles > 0) {
-                explodeParticles(attractor, false); 
+                
+            } else if (inputManager.isButtonTriggered(i)) {
+                // --- VOLVEMOS AL BOTÓN ORIGINAL ---
+                // Disparo manual controlado, usando las partículas atrapadas
+                if (attractor.trappedParticles > 0) {
+                    explodeParticles(attractor, false); 
+                }
             }
             
         } else {
             // C. LÓGICA DE AUTOLIMPIEZA (Estado Dormido)
-            // Si está inactivo y tiene partículas, suelta una lentamente cada varios frames
             if (attractor.trappedParticles > 0 && frameCount % 3 === 0) {
                 attractor.trappedParticles--;
                 let species = int(random(CONFIG.NUM_SPECIES));
-                // CORRECCIÓN: Aquí estaba el error de tipeo
                 let newP = new Particle(attractor.pos.x, attractor.pos.y, species);
-                // Las suelta con mucha delicadeza, sin explotar
                 newP.vel = p5.Vector.random2D().mult(random(0.2, 0.8)); 
                 stardust.push(newP);
             }

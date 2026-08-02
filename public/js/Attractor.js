@@ -19,22 +19,17 @@ export class Attractor {
         this.idleFrames = 0;
         this.lastEncVal = 0;
         
-        // --- NUEVAS VARIABLES PARA EXPLOSIÓN ---
-        this.cooldown = 0;       // Temporizador de reposo forzado
-        this.flashAlpha = 0;     // Transparencia del destello
+        this.cooldown = 0;       
+        this.flashAlpha = 0;     
     }
 
-    update(joyVec, encVal) {
-        // 1. Gestión de estado (Reposo Forzado vs Activo)
+    update(joyVec, encVal) { 
         if (this.cooldown > 0) {
-            // Si acaba de explotar, está en reposo forzado
             this.cooldown--;
             this.isAwake = false;
-            // Ignoramos el joystick, pero aplicamos fricción para que frene suavemente
             this.vel.mult(0.92);
             this.pos.add(this.vel);
         } else {
-            // Lógica normal de activación si no está en cooldown
             let isInputActive = (joyVec.magSq() > 0) || (encVal !== this.lastEncVal);
             this.lastEncVal = encVal;
 
@@ -43,12 +38,11 @@ export class Attractor {
                 this.idleFrames = 0;
             } else {
                 this.idleFrames++;
-                if (this.idleFrames > 180) { // ~3 segundos de inactividad
+                if (this.idleFrames > 180) { 
                     this.isAwake = false;
                 }
             }
 
-            // Movimiento
             if (this.isAwake) {
                 this.acc.add(joyVec.mult(this.joystickSensitivity));
             }
@@ -58,7 +52,6 @@ export class Attractor {
             this.acc.mult(0); 
         }
 
-        // 2. Límites de pantalla
         if (this.pos.x < 0) { this.pos.x = 0; this.vel.x = 0; } 
         else if (this.pos.x > width) { this.pos.x = width; this.vel.x = 0; }
         if (this.pos.y < 0) { this.pos.y = 0; this.vel.y = 0; } 
@@ -66,9 +59,8 @@ export class Attractor {
 
         this.mass = map(encVal, -50, 50, CONFIG.MIN_ATTRACTOR_MASS, CONFIG.MAX_ATTRACTOR_MASS, true);
         
-        // 3. Desvanecer el destello de la explosión
         if (this.flashAlpha > 0) {
-            this.flashAlpha -= 15; // Velocidad del destello (mayor número = más rápido)
+            this.flashAlpha -= 15; 
         }
     }
 
@@ -89,13 +81,13 @@ export class Attractor {
             arc(this.pos.x, this.pos.y, currentSize + 15, currentSize + 15, 0, TWO_PI * overloadRatio);
         }
         
+        // Volvemos al núcleo siempre negro 
         fill(0, this.isAwake ? 255 : 80);
         noStroke();
         circle(this.pos.x, this.pos.y, 5);
 
-        // --- NUEVO: Renderizado del destello poético ---
         if (this.flashAlpha > 0) {
-            fill(255, this.flashAlpha); // Círculo blanco con transparencia
+            fill(255, this.flashAlpha); 
             noStroke();
             circle(this.pos.x, this.pos.y, currentSize * 3.5);
         }

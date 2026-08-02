@@ -65,4 +65,7 @@ export class InputManager {
     isButtonTriggered(userId) {
         return this.users[userId].buttonTriggered;
     }
+    isButtonPressed(userId) {
+        return this.users[userId].buttonPressed;
+    }
 }
