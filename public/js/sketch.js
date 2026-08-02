@@ -16,18 +16,14 @@ let shakeTime = 0;
 let bgImages = [];
 let currentBg;
 
-// Eliminamos window.preload por completo
-
 window.setup = function() {
     createCanvas(windowWidth, windowHeight);
     ellipseMode(CENTER);
     
-    // --- SOLUCIÓN DEFINITIVA: Carga asíncrona segura para módulos ES6 ---
     let paths = ['images/SkyBox_1_169.png', 'images/SkyBox_2_169.png', 'images/SkyBox_3_169.png'];
     paths.forEach(path => {
         loadImage(path, (img) => {
             bgImages.push(img);
-            // En cuanto cargue la primera imagen, la asignamos para que se muestre de inmediato
             if (!currentBg) {
                 currentBg = img;
             }
@@ -47,19 +43,23 @@ window.setup = function() {
     userAttractors.push(new Attractor(1, width * 0.50, height * 0.5, '#33CCFF'));
     userAttractors.push(new Attractor(2, width * 0.75, height * 0.5, '#66FF66'));
 
-    setInterval(changeRandomPreset, 1 * 10 * 1000);
-    
+    setInterval(changeRandomPreset, 1 * 60 * 1000);
 };
 
 window.draw = function() {
-    background(0, 0, 0, 50); 
+    background(0, 0, 0, 45); 
     
-    // Solo dibujará cuando la imagen haya terminado de descargar asíncronamente
     if (currentBg && currentBg.width > 0) {
         push();
-        // Subí el Alpha a 80 para que la veas. Si es muy invasiva, bájalo de nuevo a 30 o 40.
-        tint(255, 40); 
-        image(currentBg, 0, 0, width, height);
+        tint(255, 35); // Alpha sutil del fondo
+        
+        // --- NOISE SUTIL DE CÁMARA (Efecto flotante espacial) ---
+        // Generamos coordenadas orgánicas ultra lentas con Perlin Noise
+        let noiseX = noise(frameCount * 0.004) * 40 - 20;
+        let noiseY = noise(frameCount * 0.004 + 500) * 40 - 20;
+        
+        // Dibujamos la imagen ligeramente más grande para cubrir el desplazamiento del noise
+        image(currentBg, noiseX - 20, noiseY - 20, width + 40, height + 40);
         pop();
     }
     
@@ -142,7 +142,6 @@ function changeRandomPreset() {
     const nextPresetId = getNextSequentialPreset(); 
     CONFIG.INTERACTION_MATRIX = getForcePreset(nextPresetId, CONFIG.NUM_SPECIES);
     
-    // Cambia el fondo aleatoriamente solo si las imágenes ya cargaron en memoria
     if (bgImages.length > 0) {
         currentBg = random(bgImages);
     }
