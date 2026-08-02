@@ -1,29 +1,47 @@
 // js/AudioManager.js
 export class AudioManager {
     constructor() {
-        // Música ambiental en bucle
-        this.ambientMusic = new Audio('../audio/perfect-beauty.mp3');
-        this.ambientMusic.loop = true;
-        this.ambientMusic.volume = 0.4; // Volumen moderado de fondo
+        // Lista de canciones basadas en tus archivos
+        this.playlist = [
+            'audio/perfect-beauty.mp3',
+            'audio/relaxing-ambient.mp3',
+            'audio/space-shuttle.mp3'
+        ];
+        this.currentSongIndex = 0;
 
-        // Voz en off conceptual
-        this.voiceOver = new Audio('../audio/Voz_En_Off.mp3');
+        // Reproductor principal de música ambiental
+        this.musicPlayer = new Audio(this.playlist[this.currentSongIndex]);
+        this.musicPlayer.loop = false;
+        this.musicPlayer.volume = 0.4;
+
+        // Escuchar cuando la canción actual termina para pasar a la siguiente
+        this.musicPlayer.addEventListener('ended', () => {
+            this.nextSong();
+        });
+
+        // Reproductor de la voz en off
+        this.voiceOver = new Audio('audio/Voz_En_Off.mp3');
         this.voiceOver.volume = 1;
 
         this.isInitialized = false;
     }
 
-    // Los navegadores bloquean el audio automático hasta que hay una interacción del usuario (clic/tecla)
     init() {
         if (!this.isInitialized) {
-            this.ambientMusic.play().catch(e => console.log("Audio waiting for interaction"));
+            this.musicPlayer.play().catch(e => console.log("Audio waiting for interaction"));
             this.isInitialized = true;
         }
     }
 
+    nextSong() {
+        // Avanza al siguiente índice de manera circular
+        this.currentSongIndex = (this.currentSongIndex + 1) % this.playlist.length;
+        this.musicPlayer.src = this.playlist[this.currentSongIndex];
+        this.musicPlayer.play().catch(e => console.log("Next song play prevented"));
+    }
+
     playVoiceOver() {
-        // Reinicia y reproduce la voz en off con la frase conceptual
         this.voiceOver.currentTime = 0;
-        this.voiceOver.play().catch(e => console.log("Audio play prevented"));
+        this.voiceOver.play().catch(e => console.log("Voiceover play prevented"));
     }
 }

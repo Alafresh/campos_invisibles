@@ -7,10 +7,10 @@ import { PhysicsManager } from './PhysicsManager.js';
 import { getNextSequentialPreset, getForcePreset } from './Presets.js';
 import { AudioManager } from './AudioManager.js';
 
-let audioManager;
 let socket;
 let inputManager;
 let physicsManager;
+let audioManager;
 let stardust = [];
 let userAttractors = [];
 let shakeTime = 0;
@@ -34,8 +34,8 @@ window.setup = function() {
     
     socket = io();
     inputManager = new InputManager(socket);
-    audioManager = new AudioManager();
     physicsManager = new PhysicsManager();
+    audioManager = new AudioManager(); // Inicializar gestor de audio
 
     for (let i = 0; i < CONFIG.TOTAL_PARTICLES; i++) {
         let species = int(random(CONFIG.NUM_SPECIES)); 
@@ -46,7 +46,15 @@ window.setup = function() {
     userAttractors.push(new Attractor(1, width * 0.50, height * 0.5, '#33CCFF'));
     userAttractors.push(new Attractor(2, width * 0.75, height * 0.5, '#66FF66'));
 
-    setInterval(changeRandomPreset, 1 * 30 * 1000);
+    // Ecosistema muta cada 1 minuto
+    setInterval(changeRandomPreset, 1 * 60 * 1000);
+
+    // Voz en off suena cada 3 minutos independientes
+    setInterval(() => {
+        if (audioManager && audioManager.isInitialized) {
+            audioManager.playVoiceOver();
+        }
+    }, 2 * 60 * 1000);
 };
 
 window.draw = function() {
@@ -54,14 +62,9 @@ window.draw = function() {
     
     if (currentBg && currentBg.width > 0) {
         push();
-        tint(255, 35); // Alpha sutil del fondo
-        
-        // --- NOISE SUTIL DE CÁMARA (Efecto flotante espacial) ---
-        // Generamos coordenadas orgánicas ultra lentas con Perlin Noise
-        let noiseX = noise(frameCount * 0.004) * 40 - 20;
-        let noiseY = noise(frameCount * 0.004 + 500) * 40 - 20;
-        
-        // Dibujamos la imagen ligeramente más grande para cubrir el desplazamiento del noise
+        tint(255, 35); 
+        let noiseX = noise(frameCount * 0.001) * 40 - 20;
+        let noiseY = noise(frameCount * 0.001 + 500) * 40 - 20;
         image(currentBg, noiseX - 20, noiseY - 20, width + 40, height + 40);
         pop();
     }
@@ -78,14 +81,16 @@ window.draw = function() {
         let rawEnc = inputManager.getEncoderVal(i);
         let joyVec = inputManager.getJoystickVec(i);
         let isBtnPressed = inputManager.isButtonTriggered(i);
+
+        // Desbloqueo de audio con la primera interacción física del hardware
         if (!audioManager.isInitialized && (joyVec.magSq() > 0 || isBtnPressed)) {
             audioManager.init();
         }
-        attractor.update(inputManager.getJoystickVec(i), rawEnc);
+        
+        attractor.update(joyVec, rawEnc);
         attractor.display();
 
         if (attractor.isAwake) {
-            
             for (let j = stardust.length - 1; j >= 0; j--) {
                 let p = stardust[j];
                 let distSq = (p.pos.x - attractor.pos.x)**2 + (p.pos.y - attractor.pos.y)**2;
@@ -93,19 +98,17 @@ window.draw = function() {
                 
                 if (distSq < captureRadius * captureRadius) {
                     let capturedParticle = stardust.splice(j, 1)[0]; 
-                    
                     let visualSize = map(attractor.mass, CONFIG.MIN_ATTRACTOR_MASS, 500, 20, 150, true);
                     capturedParticle.orbitAngle = random(TWO_PI);
                     capturedParticle.orbitRadius = random(visualSize * 0.7, visualSize * 2.2);
                     capturedParticle.orbitSpeed = random(0.03, 0.1);
-                    
                     attractor.orbitingParticles.push(capturedParticle);
                 }
             }
 
             if (attractor.orbitingParticles.length >= attractor.maxCapacity) {
                 explodeParticles(attractor, true, rawEnc); 
-            } else if (inputManager.isButtonTriggered(i)) {
+            } else if (isBtnPressed) {
                 if (attractor.orbitingParticles.length > 0) {
                     explodeParticles(attractor, false, rawEnc); 
                 }
@@ -152,9 +155,7 @@ function changeRandomPreset() {
     if (bgImages.length > 0) {
         currentBg = random(bgImages);
     }
-    if (audioManager) {
-        audioManager.playVoiceOver();
-    }
+    
     console.log(`[Cuna de Mundos] Ecosistema mutado en secuencia. Preset ID: ${nextPresetId}`);
 }
 
@@ -163,13 +164,10 @@ function explodeParticles(attractor, isOverload, currentEncRaw) {
     
     for (let i = 0; i < amountToShoot; i++) {
         let p = attractor.orbitingParticles.shift(); 
-        
         p.pos.x = attractor.pos.x;
         p.pos.y = attractor.pos.y;
-        
         let explosionForce = isOverload ? random(35, 55) : random(25, 35);
         p.vel = p5.Vector.random2D().mult(explosionForce); 
-        
         stardust.push(p); 
     }
     
