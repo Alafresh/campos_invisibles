@@ -13,7 +13,7 @@ export class Attractor {
         this.joystickSensitivity = 0.8; 
         
         this.trappedParticles = 0;
-        this.maxCapacity = 80; 
+        this.maxCapacity = 180; 
         
         this.isAwake = false;
         this.idleFrames = 0;
@@ -67,25 +67,31 @@ export class Attractor {
     display() {
         let currentSize = map(this.mass, CONFIG.MIN_ATTRACTOR_MASS, CONFIG.MAX_ATTRACTOR_MASS, 20, 60);
         
-        this.color.setAlpha(this.isAwake ? 255 : 80);
+        // Ratio de llenado de partículas (de 0.0 a 1.0)
+        let fillRatio = constrain(this.trappedParticles / this.maxCapacity, 0, 1);
+
+        push();
+        // Cambiamos a modo HSB para controlar orgánicamente la saturación y el alpha
+        colorMode(HSB, 360, 100, 100, 255);
         
-        fill(this.color);
+        let h = hue(this.color);
+        // La saturación sube desde un tono apagado (40) hasta el color vivo (100) al llenarse
+        let s = map(fillRatio, 0, 1, 40, 100);
+        let b = 100; 
+        // El alpha sube desde transparente (100) hasta totalmente opaco (255)
+        let a = this.isAwake ? map(fillRatio, 0, 1, 100, 255) : 20;
+
+        fill(h, s, b, a);
         noStroke();
         circle(this.pos.x, this.pos.y, currentSize);
+        pop();
         
-        if (this.trappedParticles > 0) {
-            noFill();
-            stroke(255, this.isAwake ? 150 : 50);
-            strokeWeight(3);
-            let overloadRatio = this.trappedParticles / this.maxCapacity;
-            arc(this.pos.x, this.pos.y, currentSize + 15, currentSize + 15, 0, TWO_PI * overloadRatio);
-        }
-        
-        // Volvemos al núcleo siempre negro 
+        // Núcleo negro central
         fill(0, this.isAwake ? 255 : 80);
         noStroke();
         circle(this.pos.x, this.pos.y, 5);
 
+        // Destello de explosión final por sobrecarga
         if (this.flashAlpha > 0) {
             fill(255, this.flashAlpha); 
             noStroke();

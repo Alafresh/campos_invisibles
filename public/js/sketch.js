@@ -11,6 +11,7 @@ let inputManager;
 let physicsManager;
 let stardust = [];
 let userAttractors = [];
+let shakeTime = 0; // NUEVA VARIABLE
 
 // Configuración p5.js global (Requerido para ES6 modules en p5)
 window.setup = function() {
@@ -39,14 +40,18 @@ window.draw = function() {
     // Fondo oscuro con leve rastro (Alpha poético)
     background(10, 10, 20, 25); 
 
+    push(); // Guardamos el estado original del lienzo
+    if (shakeTime > 0) {
+        // Sacudida aleatoria en los ejes X e Y
+        translate(random(-10, 10), random(-10, 10)); 
+        shakeTime--;
+    }
+
     // === LÓGICA / MATEMÁTICAS (Physics Update) ===
-    
-    // 1. Calcular Física N-body pairwise (O(N^2)) y Macro.
     physicsManager.applyFrictionlessPhysics(stardust, userAttractors);
 
     // === RENDERIZADO / DIBUJO ===
     
-    // 2. Dibujar y gestionar Atractores de Usuario
     // 2. Dibujar y gestionar Atractores de Usuario
     userAttractors.forEach((attractor, i) => {
         
@@ -176,12 +181,11 @@ function explodeParticles(attractor, isOverload) {
     
     // --- LÓGICA DEL DESTELLO Y REPOSO ---
     if (isOverload) {
-        // Dispara el destello visual al 100% de opacidad
         attractor.flashAlpha = 255; 
-        
-        // Forzar reposo (120 frames = ~2 segundos a 60 FPS)
-        // Durante este tiempo, el atractor soltará el joystick y dejará de atraer partículas
         attractor.cooldown = 120; 
+        
+        // NUEVO: Dispara 25 frames de temblor violento en toda la instalación
+        shakeTime = 25; 
     }
 }
 
