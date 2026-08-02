@@ -140,7 +140,7 @@ window.draw = function() {
         particle.integrate(); 
     }
     
-    drawDebug();
+    //drawDebug();
 };
 
 function drawDebug() {
