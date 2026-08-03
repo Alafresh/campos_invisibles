@@ -1,14 +1,10 @@
-// js/sketch.js
 import { CONFIG } from './Config.js';
-import { InputManager } from './InputManager.js';
 import { Particle } from './Particle.js';
 import { Attractor } from './Attractor.js';
 import { PhysicsManager } from './PhysicsManager.js';
 import { getNextSequentialPreset, getForcePreset } from './Presets.js';
 import { AudioManager } from './AudioManager.js';
 
-let socket;
-let inputManager;
 let physicsManager;
 let audioManager;
 let stardust = [];
@@ -18,11 +14,12 @@ let shakeTime = 0;
 let bgImages = [];
 let currentBg;
 
+// Variables de estado para simular los Encoders y Botones con el teclado
+let simEncoders = [0, 0, 0];
+let simButtons = [false, false, false];
+
 window.setup = function() {
-    // --- OPTIMIZACIÓN HARDWARE RASPBERRY PI ---
-    // Fuerza la densidad de píxeles a 1 para liberar carga de procesamiento en la GPU
-    pixelDensity(1);
-    
+    // Para la versión de PC Full, quitamos pixelDensity(1) para máxima resolución
     createCanvas(windowWidth, windowHeight);
     ellipseMode(CENTER);
     
@@ -36,8 +33,7 @@ window.setup = function() {
         });
     });
     
-    socket = io();
-    inputManager = new InputManager(socket);
+    // Eliminamos socket e InputManager, instanciamos directamente las físicas
     physicsManager = new PhysicsManager();
     audioManager = new AudioManager(); 
 
@@ -82,9 +78,8 @@ window.draw = function() {
     physicsManager.applyFrictionlessPhysics(stardust, userAttractors);
 
     userAttractors.forEach((attractor, i) => {
-        let rawEnc = inputManager.getEncoderVal(i);
-        let joyVec = inputManager.getJoystickVec(i);
-        let isBtnPressed = inputManager.isButtonTriggered(i);
+        // Obtenemos las entradas simuladas por teclado en lugar del Arduino
+        let { joyVec, rawEnc, isBtnPressed } = getKeyboardInputs(i);
 
         if (!audioManager.isInitialized && (joyVec.magSq() > 0 || isBtnPressed)) {
             audioManager.init();
@@ -140,16 +135,59 @@ window.draw = function() {
         particle.integrate(); 
     }
     
-    //drawDebug();
+    // drawDebug();
 };
 
-function drawDebug() {
-    fill(255);
-    noStroke();
-    textSize(12);
-    textAlign(LEFT, TOP);
-    text(`Stardust: ${stardust.length} | FPS: ${int(frameRate())}`, 10, height - 20);
+// --- SIMULADOR DE HARDWARE POR TECLADO ---
+function getKeyboardInputs(i) {
+    let joyVec = createVector(0, 0);
+    let isBtn = false;
+
+    // Consumir el botón si fue presionado este frame
+    if (simButtons[i]) {
+        isBtn = true;
+        simButtons[i] = false;
+    }
+
+    // Mapeo de controles por Atractor
+    if (i === 0) {
+        // Atractor 1: Movimiento W,A,S,D | Masa Q/E
+        if (keyIsDown(65)) joyVec.x -= 1; // A
+        if (keyIsDown(68)) joyVec.x += 1; // D
+        if (keyIsDown(87)) joyVec.y -= 1; // W
+        if (keyIsDown(83)) joyVec.y += 1; // S
+        if (keyIsDown(81)) simEncoders[0] -= 1; // Q
+        if (keyIsDown(69)) simEncoders[0] += 1; // E
+    } else if (i === 1) {
+        // Atractor 2: Movimiento Flechas | Masa O/P
+        if (keyIsDown(LEFT_ARROW)) joyVec.x -= 1;
+        if (keyIsDown(RIGHT_ARROW)) joyVec.x += 1;
+        if (keyIsDown(UP_ARROW)) joyVec.y -= 1;
+        if (keyIsDown(DOWN_ARROW)) joyVec.y += 1;
+        if (keyIsDown(79)) simEncoders[1] -= 1; // O
+        if (keyIsDown(80)) simEncoders[1] += 1; // P
+    } else if (i === 2) {
+        // Atractor 3: Movimiento I,J,K,L | Masa U/Y
+        if (keyIsDown(74)) joyVec.x -= 1; // J
+        if (keyIsDown(76)) joyVec.x += 1; // L
+        if (keyIsDown(73)) joyVec.y -= 1; // I
+        if (keyIsDown(75)) joyVec.y += 1; // K
+        if (keyIsDown(85)) simEncoders[2] -= 1; // U
+        if (keyIsDown(89)) simEncoders[2] += 1; // Y
+    }
+
+    // Normalizamos para simular el comportamiento del joystick (magnitud max 1)
+    if (joyVec.magSq() > 0) joyVec.normalize();
+
+    return { joyVec: joyVec, rawEnc: simEncoders[i], isBtnPressed: isBtn };
 }
+
+// Escuchador global de teclado para eventos de 1 solo clic (Los botones arcade)
+window.keyPressed = function() {
+    if (keyCode === 32) simButtons[0] = true; // Espacio para Atractor 1
+    if (keyCode === ENTER) simButtons[1] = true; // Enter para Atractor 2
+    if (keyCode === SHIFT) simButtons[2] = true; // Shift para Atractor 3
+};
 
 function changeRandomPreset() {
     const nextPresetId = getNextSequentialPreset(); 
@@ -159,7 +197,7 @@ function changeRandomPreset() {
         currentBg = random(bgImages);
     }
     
-    console.log(`[Cuna de Mundos] Ecosistema mutado en secuencia. Preset ID: ${nextPresetId}`);
+    console.log(`[Campos Invisibles] Ecosistema mutado. Preset ID: ${nextPresetId}`);
 }
 
 function explodeParticles(attractor, isOverload, currentEncRaw) {

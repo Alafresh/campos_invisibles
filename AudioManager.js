@@ -3,9 +3,9 @@ export class AudioManager {
     constructor() {
         // Lista de canciones basadas en tus archivos
         this.playlist = [
-            'audio/perfect-beauty.mp3',
-            'audio/relaxing-ambient.mp3',
-            'audio/space-shuttle.mp3'
+            './perfect-beauty.mp3',
+            './relaxing-ambient.mp3',
+            './space-shuttle.mp3'
         ];
         this.currentSongIndex = 0;
 
@@ -20,7 +20,7 @@ export class AudioManager {
         });
 
         // Reproductor de la voz en off
-        this.voiceOver = new Audio('audio/Voz_En_Off.mp3');
+        this.voiceOver = new Audio('./Voz_En_Off.mp3');
         this.voiceOver.volume = 1;
 
         this.isInitialized = false;
