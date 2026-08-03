@@ -15,26 +15,13 @@ let stardust = [];
 let userAttractors = [];
 let shakeTime = 0;
 
-let bgImages = [];
-let currentBg;
-
 window.setup = function() {
     // --- OPTIMIZACIÓN HARDWARE RASPBERRY PI ---
-    // Fuerza la densidad de píxeles a 1 para liberar carga de procesamiento en la GPU
     pixelDensity(1);
+    frameRate(30); 
     
     createCanvas(windowWidth, windowHeight);
     ellipseMode(CENTER);
-    
-    let paths = ['images/SkyBox_1_169.png', 'images/SkyBox_2_169.png', 'images/SkyBox_3_169.png'];
-    paths.forEach(path => {
-        loadImage(path, (img) => {
-            bgImages.push(img);
-            if (!currentBg) {
-                currentBg = img;
-            }
-        });
-    });
     
     socket = io();
     inputManager = new InputManager(socket);
@@ -62,16 +49,8 @@ window.setup = function() {
 };
 
 window.draw = function() {
+    // Limpieza de fondo con alpha para mantener la estela de las partículas
     background(0, 0, 0, 45); 
-    
-    if (currentBg && currentBg.width > 0) {
-        push();
-        tint(255, 35); 
-        let noiseX = noise(frameCount * 0.001) * 40 - 20;
-        let noiseY = noise(frameCount * 0.001 + 500) * 40 - 20;
-        image(currentBg, noiseX - 20, noiseY - 20, width + 40, height + 40);
-        pop();
-    }
     
     push(); 
     if (shakeTime > 0) {
@@ -96,11 +75,20 @@ window.draw = function() {
         if (attractor.isAwake) {
             for (let j = stardust.length - 1; j >= 0; j--) {
                 let p = stardust[j];
-                let distSq = (p.pos.x - attractor.pos.x)**2 + (p.pos.y - attractor.pos.y)**2;
+                
+                // Matemáticas directas sin potencia
+                let dx = p.pos.x - attractor.pos.x;
+                let dy = p.pos.y - attractor.pos.y;
+                let distSq = (dx * dx) + (dy * dy);
+                
                 let captureRadius = 5; 
                 
-                if (distSq < captureRadius * captureRadius) {
-                    let capturedParticle = stardust.splice(j, 1)[0]; 
+                if (distSq < (captureRadius * captureRadius)) {
+                    // Fast Swap (remoción O(1) ultrarrápida)
+                    let capturedParticle = stardust[j];
+                    stardust[j] = stardust[stardust.length - 1];
+                    stardust.pop(); 
+                    
                     let visualSize = map(attractor.mass, CONFIG.MIN_ATTRACTOR_MASS, 500, 20, 150, true);
                     capturedParticle.orbitAngle = random(TWO_PI);
                     capturedParticle.orbitRadius = random(visualSize * 0.7, visualSize * 2.2);
@@ -128,11 +116,10 @@ window.draw = function() {
         }
     });
 
-    blendMode(ADD); 
+    // Renderizado estándar de partículas (sin modos de fusión pesados)
     for (let particle of stardust) {
         particle.display(); 
     }
-    blendMode(BLEND); 
 
     pop(); 
 
@@ -140,7 +127,7 @@ window.draw = function() {
         particle.integrate(); 
     }
     
-    //drawDebug();
+    drawDebug();
 };
 
 function drawDebug() {
@@ -155,10 +142,6 @@ function changeRandomPreset() {
     const nextPresetId = getNextSequentialPreset(); 
     CONFIG.INTERACTION_MATRIX = getForcePreset(nextPresetId, CONFIG.NUM_SPECIES);
     
-    if (bgImages.length > 0) {
-        currentBg = random(bgImages);
-    }
-    
     console.log(`[Cuna de Mundos] Ecosistema mutado en secuencia. Preset ID: ${nextPresetId}`);
 }
 
@@ -166,7 +149,7 @@ function explodeParticles(attractor, isOverload, currentEncRaw) {
     let amountToShoot = isOverload ? attractor.orbitingParticles.length : Math.min(15, attractor.orbitingParticles.length);
     
     for (let i = 0; i < amountToShoot; i++) {
-        let p = attractor.orbitingParticles.shift(); 
+        let p = attractor.orbitingParticles.pop(); 
         p.pos.x = attractor.pos.x;
         p.pos.y = attractor.pos.y;
         let explosionForce = isOverload ? random(35, 55) : random(25, 35);

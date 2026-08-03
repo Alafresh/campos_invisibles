@@ -5,7 +5,7 @@ const NUM_SPECIES = 7;
 
 export const CONFIG = {
     // Especificaciones del Ecosistema
-    TOTAL_PARTICLES: 1250, 
+    TOTAL_PARTICLES: 500, 
     NUM_SPECIES: NUM_SPECIES,
     PARTICLE_MIN_MASS: 0.5,
     PARTICLE_MAX_MASS: 1.2,

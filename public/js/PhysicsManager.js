@@ -1,98 +1,98 @@
-// js/PhysicsManager.js
-import { CONFIG} from './Config.js';
+import { CONFIG } from './Config.js';
 
 export class PhysicsManager {
     constructor() {
-        // Reutilización de vectores para evitar Garbage Collection masivo en RPi
-        this.tempVec = createVector(0, 0); 
+        // Ya no necesitamos un tempVec de p5, el motor de JS procesa
+        // variables numéricas primitivas de forma nativa e instantánea.
     }
 
-    // Lógica central: calcula fuerzas Micro (Stardust) y Macro (Gravity)
-    // Desacoplado de la actualización de posición (Integración)
     applyFrictionlessPhysics(particles, attractors) {
-        
-        // Requerimos cálculos vectoriales nativos para velocidad.
-        // N = TOTAL_PARTICLES. Loop pairwise O(N^2) crítico.
-        for (let i = 0; i < particles.length; i++) {
-            let p1 = particles[i];
-            let totalAccMicro = createVector(0,0);
-            let totalAccMacro = createVector(0,0);
+        // CACHÉ DE CONSTANTES: Leer propiedades de objetos (CONFIG.x) es más lento 
+        // que leer una variable local. Guardamos todo antes del bucle crítico.
+        const len = particles.length;
+        const rMax = CONFIG.R_MAX;
+        const rMaxSq = rMax * rMax;
+        const beta = CONFIG.BETA;
+        const microForceFactor = CONFIG.MICRO_FORCE_FACTOR;
+        const gMacro = CONFIG.G_MACRO;
+        const interactionMatrix = CONFIG.INTERACTION_MATRIX;
 
-            // --- FÍSICA MICRO (Particle Life: N-body problem) ---
-            // Optimizamos usando simetría (p1 vs p2 == p2 vs p1)? 
-            // No, porque las fuerzas son ASIMÉTRICAS según la matriz.
-            for (let j = 0; j < particles.length; j++) {
+        // N = TOTAL_PARTICLES. Loop O(N^2)
+        for (let i = 0; i < len; i++) {
+            let p1 = particles[i];
+            
+            // Caché de la posición de p1 para no acceder al objeto repetidas veces
+            let p1x = p1.pos.x;
+            let p1y = p1.pos.y;
+            let sp1 = p1.species;
+
+            // Variables primitivas en lugar de createVector() para evitar el Garbage Collection
+            let accMicroX = 0;
+            let accMicroY = 0;
+            let accMacroX = 0;
+            let accMacroY = 0;
+
+            // --- FÍSICA MICRO (Particle Life) ---
+            for (let j = 0; j < len; j++) {
                 if (i === j) continue;
                 let p2 = particles[j];
 
-                // Vector de p1 a p2
-                let dx = p2.pos.x - p1.pos.x;
-                let dy = p2.pos.y - p1.pos.y;
-                
-                // Distancia cuadrada primero para optimization (evitar sqrt)
-                let distSq = dx*dx + dy*dy;
-                let rMaxSq = CONFIG.R_MAX * CONFIG.R_MAX;
+                let dx = p2.pos.x - p1x;
+                let dy = p2.pos.y - p1y;
+                let distSq = dx * dx + dy * dy;
 
                 if (distSq > 0 && distSq < rMaxSq) {
                     let dist = Math.sqrt(distSq);
-                    
-                    // Cálculo de la fuerza micro poética (F = m1*m2*f(r))
-                    // f(r) depende de si es repulsión universal cercana o matriz de especie
-                    let f = this.calculateMicroForcePotential(dist, p1.species, p2.species);
-                    
-                    // Normalizar vector manualmente (más rápido que .normalize())
-                    dx /= dist;
-                    dy /= dist;
+                    let r_norm = dist / rMax;
+                    let f = 0;
 
-                    // Newton: Aceleración += Fuerza / masa. f ya incorpora intensidad.
-                    // Escalar dirección por fuerza y aplicar a p1
-                    totalAccMicro.x += dx * f * p2.mass;
-                    totalAccMicro.y += dy * f * p2.mass;
+                    // INLINING MATEMÁTICO: Evita llamar a una función externa
+                    if (r_norm < beta) {
+                        f = r_norm / beta - 1; // Repulsión universal cercana
+                    } else {
+                        // Matriz de atracción/repulsión
+                        let m = interactionMatrix[sp1][p2.species];
+                        let scale = 1 - Math.abs(2 * r_norm - 1 - beta) / (1 - beta);
+                        f = m * scale;
+                    }
+
+                    // ÁLGEBRA OPTIMIZADA: Agrupamos escalares en un solo multiplicador
+                    let forceMultiplier = (f * p2.mass) / dist; 
+                    
+                    accMicroX += dx * forceMultiplier;
+                    accMicroY += dy * forceMultiplier;
                 }
             }
             
-            // Aplicar intensidad Micro
-            totalAccMicro.mult(CONFIG.MICRO_FORCE_FACTOR);
+            accMicroX *= microForceFactor;
+            accMicroY *= microForceFactor;
 
-            // --- FÍSICA MACRO (Gravitación Universal Atractores) ---
-            for (let attractor of attractors) {
-                // Volvemos a solo verificar si está despierto
-                if (!attractor.isAwake) continue; 
+            // --- FÍSICA MACRO (Gravitación) ---
+            for (let a = 0; a < attractors.length; a++) {
+                let attractor = attractors[a];
+                if (!attractor.isAwake) continue;
 
-                let adx = attractor.pos.x - p1.pos.x;
-                let ady = attractor.pos.y - p1.pos.y;
-                let adistSq = Math.max(adx*adx + ady*ady, 100); 
-                let magMacro = (CONFIG.G_MACRO * attractor.mass) / adistSq;
+                let adx = attractor.pos.x - p1x;
+                let ady = attractor.pos.y - p1y;
+                let adistSq = adx * adx + ady * ady;
                 
+                // Evitamos Math.max() usando un condicional simple
+                if (adistSq < 100) adistSq = 100; 
+
+                // Cálculo de la gravedad
+                let magMacro = (gMacro * attractor.mass) / adistSq;
                 let adist = Math.sqrt(adistSq);
                 
-                totalAccMacro.x += (adx / adist) * magMacro;
-                totalAccMacro.y += (ady / adist) * magMacro;
+                let forceAttractor = magMacro / adist;
+                accMacroX += adx * forceAttractor;
+                accMacroY += ady * forceAttractor;
             }
 
-            // --- SUMA DE FUERZAS POÉTICAS ---
-            // La macro anula a la micro a distancias muy cortas por safeDistSq vs calculateMicroForcePotential
-            p1.acc.add(totalAccMicro);
-            p1.acc.add(totalAccMacro);
-        }
-    }
-
-    // Referencia matemática: Tom Mohr's Particle Life
-    // dist es 0 a R_MAX. Beta es 0 a 1 (normalizado).
-    calculateMicroForcePotential(dist, speciesA, speciesB) {
-        let r_norm = dist / CONFIG.R_MAX;
-        
-        if (r_norm < CONFIG.BETA) {
-            // 1. Repulsión universal cercana
-            return r_norm / CONFIG.BETA - 1;
-        } else {
-            // 2. Atracción/Repulsión según la matriz dinámica
-            // AHORA LO LEEMOS DIRECTAMENTE DE CONFIG
-            let m = CONFIG.INTERACTION_MATRIX[speciesA][speciesB];
-            
-            // Factor de damping lineal
-            let scale = 1 - Math.abs(2 * r_norm - 1 - CONFIG.BETA) / (1 - CONFIG.BETA);
-            return m * scale;
+            // --- SUMA DE FUERZAS ---
+            // Modificamos directamente las propiedades .x y .y de p1.acc
+            // Esto evita usar el método .add() de p5.Vector, que es considerablemente más lento.
+            p1.acc.x += accMicroX + accMacroX;
+            p1.acc.y += accMicroY + accMacroY;
         }
     }
 }
