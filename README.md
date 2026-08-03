@@ -11,7 +11,7 @@ La instalación traduce la manipulación de variables físicas reales (masa, vec
 
 ### 🎯 Dinámica de Interacción (UX)
 
-* **El usuario:** Utiliza joysticks como los de ps2 para desplazarse por el espacio **coordenadas (x, y)**, encoders que funcional como perillas para **aumentar o disminuir** la masa gravitacional de su "atractor", y pulsometros que funcional como botones de arcade para expulsar particulas de polvo estelar.
+* **El usuario:** Tiene un control compuesto por joystick, encoder y pulsador. Utiliza joystick como los de ps2 para desplazarse por el espacio **coordenadas (x, y)**, encoders que funcional como perillas para **aumentar o disminuir** la masa gravitacional de su "atractor", y pulsometros que funcional como botones de arcade para expulsar particulas de polvo estelar.
 * **El sistema:** Las partículas en pantalla reaccionan orgánicamente a las masas introducidas por los usuarios. Si un atractor captura demasiada materia en su órbita debido a su alta densidad, se sobrecarga y expulsa la materia violentamente, simulando el comportamiento de un Quásar o la radiación de un agujero negro.
 * **El aprendizaje:** El visitante comprende que la gravedad es un baile de influencias invisibles que da forma a la estructura de nuestro universo. Experimentan de forma intuitiva conceptos complejos como la mecánica orbital, los campos de influencia gravitacional, los límites de densidad de la materia y el colapso astrofísico.
 
@@ -49,3 +49,32 @@ El hardware está pensado para soportar la interacción de 1 a 3 visitantes en s
 | **Salida A/V** | Proyector HDMI (Ej. marca Redflag) | 1 | Proyección de la experiencia sobre la superficie física del espacio de 5m². |
 | **Conectividad** | Cables de video (Micro-HDMI a HDMI / HDMI a HDMI) | 2 | Enrutamiento de señal de video dependiendo de si el render se hace desde la Raspberry Pi o desde el PC. |
 | **Ensamblaje** | Protoboard, Cables Jumper (~80x), Tornillería (12x) | Kit | Materiales para el prototipado rápido, ruteo electrónico y fijación mecánica de los módulos. |
+
+## 🗓️ Plan de Ejecución, Presupuesto y Estrategia de Desarrollo
+
+Para la proyeccion de la experiencia en el espacio de 5m² dentro de la sala, se plantea la siguiente estructura de gestión de proyecto:
+
+### 💰 Estimación de Costos
+
+| Categoría | Concepto | Costo Estimado |
+| :--- | :--- | :--- |
+| **Componentes (Electrónica)** | Raspberry Pi 4, Arduino Mega, Encoders, Joysticks, Botones, Cableado, Fuentes de alimentación. | $ 576,000 COP |
+| **Componentes (A/V)** | Proyector, cableado de video. | $ 200,000 COP |
+| **Licencias de Software** | Node.js, p5.js, Arduino IDE, PM2, OS Linux. | **$ 0** (100% Open Source) |
+| **Fabricación Local** | Construcción del mobiliario (quiosco) | $ 720,000  COP |
+| **TOTAL ESTIMADO** | | **$ 1,496,000 COP** |
+
+### 🧩 Matriz de Ejecución
+
+Para optimizar el presupuesto y garantizar la calidad técnica, el desarrollo se divide de la siguiente manera:
+
+| Desarrollo Interno (In-House) | Subcontratación (Proveedores Locales) |
+| :--- | :--- |
+| • Arquitectura de Software y Lógica Física (p5.js).<br>• Desarrollo del Backend (Node.js/Serial).<br>• Diseño de UX y flujos de interacción.<br>• Ensamblaje electrónico y ruteo inicial.<br>• Integración y calibración en sala. | • **Diseño Industrial y Mobiliario:** Diseño de la estructura física que albergará la electrónica para protegerla del alto tráfico.<br>• **Carpintería/Mecanizado:** Corte y pintura del quiosco físico.<br>• **Instalación Eléctrica:** Puntos de red y 110V en sala. |
+
+### ⏱️ Cronograma Estimado (Desarrollo e Integración)
+
+Se propone un ciclo de desarrollo ágil y en paralelo de **2 semanas** hasta la entrega final en sala:
+
+* **Semana 1: Ideación, Prototipado y Desarrollo de Software.** Pruebas de concepto con Arduino y p5.js, selección de componentes y validación de la física gravitacional. Programación orientada a objetos (Attractors, Particles), estabilización del servidor Node.js y optimización de FPS. Envío simultáneo de planos al proveedor de mobiliario.
+* **Semana 2: Pruebas, Integración Física y Montaje.** Ejecución de pruebas de *stress* (48 horas continuas comprobando PM2 y auto-arranque) en paralelo con la construccion del mobiliario. Integración de la electrónica en el quiosco, instalación en el espacio de 5m² en la sala "Fuerzas Fundamentales", calibración del proyector y entrega final al equipo de operaciones.
