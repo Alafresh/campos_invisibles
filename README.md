@@ -79,3 +79,7 @@ Se propone un ciclo de desarrollo ágil y en paralelo de **2 semanas** hasta la 
 
 * **Semana 1: Ideación, Prototipado y Desarrollo de Software.** Pruebas de concepto con Arduino y p5.js, selección de componentes y validación de la física gravitacional. Programación orientada a objetos (Attractors, Particles), estabilización del servidor Node.js y optimización de FPS. Envío simultáneo de planos al proveedor de mobiliario.
 * **Semana 2: Pruebas, Integración Física y Montaje.** Ejecución de pruebas de *stress* (48 horas continuas comprobando PM2 y auto-arranque) en paralelo con la construccion del mobiliario. Integración de la electrónica en el quiosco, instalación en el espacio de 5m² en la sala "Fuerzas Fundamentales", calibración del proyector y entrega final al equipo de operaciones.
+
+## 🚀 Prototipo
+
+Como parte de esta prueba técnica, se ha desarrollado un prototipo inicial a pequeña escala que demuestra la viabilidad de la comunicación Hardware-Software y la estabilidad del motor físico gravitacional
