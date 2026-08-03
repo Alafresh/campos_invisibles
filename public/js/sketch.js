@@ -67,8 +67,8 @@ window.draw = function() {
     if (currentBg && currentBg.width > 0) {
         push();
         tint(255, 35); 
-        let noiseX = noise(frameCount * 0.001) * 40 - 20;
-        let noiseY = noise(frameCount * 0.001 + 500) * 40 - 20;
+        let noiseX = noise(frameCount * 0.003) * 40 - 20;
+        let noiseY = noise(frameCount * 0.003 + 500) * 40 - 20;
         image(currentBg, noiseX - 20, noiseY - 20, width + 40, height + 40);
         pop();
     }
