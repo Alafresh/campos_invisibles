@@ -23,7 +23,7 @@ window.setup = function() {
     createCanvas(windowWidth, windowHeight);
     ellipseMode(CENTER);
     
-    let paths = ['images/SkyBox_1_169.png', 'images/SkyBox_2_169.png', 'images/SkyBox_3_169.png'];
+    let paths = ['./SkyBox_1_169.png', './SkyBox_2_169.png', './SkyBox_3_169.png'];
     paths.forEach(path => {
         loadImage(path, (img) => {
             bgImages.push(img);
