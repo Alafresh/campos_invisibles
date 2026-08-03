@@ -15,8 +15,8 @@ export class Attractor {
         // Almacena los objetos partícula reales
         this.orbitingParticles = [];
         
-        this.baseCapacity = 180;     
-        this.maxCapacity = 180;      
+        this.baseCapacity = 120;     
+        this.maxCapacity = 120;      
         
         this.encoderOffset = 0;     
         

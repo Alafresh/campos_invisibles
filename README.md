@@ -86,17 +86,14 @@ Como parte de esta prueba técnica, se ha desarrollado un prototipo inicial a pe
 
 > **Nota importante:** El **prototipo físico** es la versión principal de la prueba con todo el sistema integrado, mientras que esta **demo web** es una versión creada específicamente para facilitar que los evaluadores puedan ver y probar el funcionamiento del proyecto de forma sencilla sin necesidad de contar con el hardware físico.
 
-## 💡 Diferencias Clave: Demo Web vs. Prototipo Físico
+* **Prototipo Físico Original (Oficial):** Arquitectura completa diseñada para **3 jugadores simultáneos**, integrada mediante microcontroladores (Arduino) con hardware dedicado (joysticks, encoders rotatorios y botones arcade) para cada atractor del ecosistema.
+[!gif_prototipo](./public/images/gif_prototipo.gif)
+[!gif_prototipo2](./public/images/Gif_prototipo_2.gif)
+![imagen controles](./public/images/Prototipo.jpeg)
 
-* **Prototipo Físico Original:** Es la versión oficial de la prueba. Cuenta con una arquitectura completa diseñada para **3 jugadores simultáneos**, integrada mediante microcontroladores (Arduino) con joysticks analógicos, encoders rotatorios físicos dedicados al control de masa, y botones arcade independientes para cada uno de los tres atractores del ecosistema.
-* **Demo Web:** Versión alternativa diseñada para **1 jugador** a través del teclado de un computador. Está optimizada para despliegues rápidos en la nube (como Vercel) y pensada para facilitar que los evaluadores puedan revisar el proyecto fácilmente sin el hardware.
+* **Demo Web (Alternativa de evaluación):** Versión para **1 jugador** diseñada específicamente para que los evaluadores prueben el funcionamiento del ecosistema sin necesidad de hardware. Despliegue en la nube optimizado para navegador. [Pruébalo en este enlace](https://campos-invisibles.vercel.app/).
 
-
-### 🎮 Controles del Demo Web (1 Jugador)
-
-Dado que esta versión está optimizada para ejecutarse en un entorno web de escritorio, los controles de la instalación física se han mapeado al teclado de la siguiente manera:
-
-* **Movimiento:** Usa las **Flechas del teclado** o las teclas **W, A, S, D** para desplazar libremente el atractor por la pantalla.
-* **Disminuir Tamaño / Masa:** Mantén presionada la tecla **`Q`** para reducir la masa del atractor.
-* **Aumentar Tamaño / Masa:** Mantén presionada la tecla **`E`** para incrementar la masa del atractor y permitirle absorber más partículas en su órbita.
-* **Explosión:** Presiona la barra **Espacio** para detonar de forma manual la liberación de partículas acumuladas.
+**Controles de la Demo Web (Teclado):**
+* **Movimiento:** Flechas direccionales (`→` `←` `↑` `↓`) o `W` `A` `S` `D`.
+* **Masa:** Mantén presionada `Q` (Disminuir) o `E` (Aumentar) para ajustar la capacidad de absorción del atractor.
+* **Explosión:** Barra `Espaciadora` para detonar manualmente la materia acumulada.
