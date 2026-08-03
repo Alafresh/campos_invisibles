@@ -1,3 +1,9 @@
+## 🎥 Video Demostrativo
+
+> **▶️ [Haz clic aquí para ver el video explicativo del prototipo y la idea](https://youtu.be/Ou4-W4ZrkXQ?si=G48OaBy9OwpVB6dl)**
+
+En este video explicamos cómo funciona el sistema con la Raspberry Pi, la distribución de la arquitectura y la interacción física de los 3 jugadores.
+
 ## 📖 Descripción del Proyecto
 
 **Fuerza Fundamental elegida:** Gravedad
