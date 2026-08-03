@@ -74,15 +74,26 @@ window.draw = function() {
 
     physicsManager.applyFrictionlessPhysics(stardust, userAttractors);
 
-    // Como solo hay un atractor (índice 0), procesamos sus entradas por teclado
-    let { joyVec, rawEnc, isBtnPressed } = getKeyboardInputs();
+    // Obtenemos movimiento y botón
+    let { joyVec, isBtnPressed } = getKeyboardInputs();
 
     if (!audioManager.isInitialized && (joyVec.magSq() > 0 || isBtnPressed)) {
         audioManager.init();
     }
     
     let attractor = userAttractors[0];
-    attractor.update(joyVec, rawEnc);
+    
+    // Actualizamos posición con el joystick por teclado (pasamos 0 de encoder ya que lo manejamos directo)
+    attractor.update(joyVec, 0);
+
+    // --- CONTROL DIRECTO DE MASA CON TECLAS Q y E ---
+    if (keyIsDown(81)) { // Q: Reducir masa
+        attractor.mass = max(CONFIG.MIN_ATTRACTOR_MASS, attractor.mass - 4);
+    }
+    if (keyIsDown(69)) { // E: Aumentar masa
+        attractor.mass = min(500, attractor.mass + 4);
+    }
+
     attractor.display();
 
     if (attractor.isAwake) {
@@ -102,10 +113,10 @@ window.draw = function() {
         }
 
         if (attractor.orbitingParticles.length >= attractor.maxCapacity) {
-            explodeParticles(attractor, true, rawEnc); 
+            explodeParticles(attractor, true, 0); 
         } else if (isBtnPressed) {
             if (attractor.orbitingParticles.length > 0) {
-                explodeParticles(attractor, false, rawEnc); 
+                explodeParticles(attractor, false, 0); 
             }
         }
         
@@ -132,27 +143,22 @@ window.draw = function() {
     }
 };
 
-// --- CONTROLADOR POR TECLADO PARA EL DEMO WEB ---
+// --- CONTROLADOR SIMPLIFICADO POR TECLADO ---
 function getKeyboardInputs() {
     let joyVec = createVector(0, 0);
     let isBtn = simButtonPressed;
     
-    // Consumir el evento del botón para que no se quede pegado
     simButtonPressed = false;
 
-    // Movimiento con las Flechas o con W, A, S, D
-    if (keyIsDown(LEFT_ARROW) || keyIsDown(65)) joyVec.x -= 1;  // Izquierda / A
-    if (keyIsDown(RIGHT_ARROW) || keyIsDown(68)) joyVec.x += 1; // Derecha / D
-    if (keyIsDown(UP_ARROW) || keyIsDown(87)) joyVec.y -= 1;     // Arriba / W
-    if (keyIsDown(DOWN_ARROW) || keyIsDown(83)) joyVec.y += 1;   // Abajo / S
-
-    // Control de Masa (Encoder simulado) con las teclas Q (reducir) y E (aumentar)
-    if (keyIsDown(81)) simEncoderVal -= 2; // Q
-    if (keyIsDown(69)) simEncoderVal += 2; // E
+    // Movimiento (Flechas o WASD)
+    if (keyIsDown(LEFT_ARROW) || keyIsDown(65)) joyVec.x -= 1;  
+    if (keyIsDown(RIGHT_ARROW) || keyIsDown(68)) joyVec.x += 1; 
+    if (keyIsDown(UP_ARROW) || keyIsDown(87)) joyVec.y -= 1;     
+    if (keyIsDown(DOWN_ARROW) || keyIsDown(83)) joyVec.y += 1;   
 
     if (joyVec.magSq() > 0) joyVec.normalize();
 
-    return { joyVec: joyVec, rawEnc: simEncoderVal, isBtnPressed: isBtn };
+    return { joyVec: joyVec, isBtnPressed: isBtn };
 }
 
 // Tecla ESPACIO para disparar la Explosión
@@ -195,5 +201,5 @@ function explodeParticles(attractor, isOverload, currentEncRaw) {
 
 window.windowResized = function() {
     resizeCanvas(windowWidth, windowHeight);
-    
+
 };
