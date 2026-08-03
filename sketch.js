@@ -14,7 +14,7 @@ let shakeTime = 0;
 let bgImages = [];
 let currentBg;
 
-// Variables de estado simplificadas para un solo atractor en la web
+// Variables de estado para simular el Encoder y el Botón con el teclado
 let simEncoderVal = 0;
 let simButtonPressed = false;
 
@@ -74,26 +74,25 @@ window.draw = function() {
 
     physicsManager.applyFrictionlessPhysics(stardust, userAttractors);
 
-    // Obtenemos movimiento y botón
+    // Obtenemos entradas de movimiento y botones
     let { joyVec, isBtnPressed } = getKeyboardInputs();
 
-    if (!audioManager.isInitialized && (joyVec.magSq() > 0 || isBtnPressed)) {
+    // Actualizar el valor acumulado del encoder con Q y E
+    if (keyIsDown(81)) { // Q: Reduce masa (encoder atrás)
+        simEncoderVal -= 2;
+    }
+    if (keyIsDown(69)) { // E: Aumenta masa (encoder adelante)
+        simEncoderVal += 2;
+    }
+
+    if (!audioManager.isInitialized && (joyVec.magSq() > 0 || isBtnPressed || keyIsDown(81) || keyIsDown(69))) {
         audioManager.init();
     }
     
     let attractor = userAttractors[0];
     
-    // Actualizamos posición con el joystick por teclado (pasamos 0 de encoder ya que lo manejamos directo)
-    attractor.update(joyVec, 0);
-
-    // --- CONTROL DIRECTO DE MASA CON TECLAS Q y E ---
-    if (keyIsDown(81)) { // Q: Reducir masa
-        attractor.mass = max(CONFIG.MIN_ATTRACTOR_MASS, attractor.mass - 4);
-    }
-    if (keyIsDown(69)) { // E: Aumentar masa
-        attractor.mass = min(500, attractor.mass + 4);
-    }
-
+    // Pasamos el vector de movimiento y el acumulador del encoder simulado
+    attractor.update(joyVec, simEncoderVal);
     attractor.display();
 
     if (attractor.isAwake) {
@@ -113,10 +112,10 @@ window.draw = function() {
         }
 
         if (attractor.orbitingParticles.length >= attractor.maxCapacity) {
-            explodeParticles(attractor, true, 0); 
+            explodeParticles(attractor, true, simEncoderVal); 
         } else if (isBtnPressed) {
             if (attractor.orbitingParticles.length > 0) {
-                explodeParticles(attractor, false, 0); 
+                explodeParticles(attractor, false, simEncoderVal); 
             }
         }
         
@@ -143,14 +142,14 @@ window.draw = function() {
     }
 };
 
-// --- CONTROLADOR SIMPLIFICADO POR TECLADO ---
+// --- CONTROLADOR POR TECLADO ---
 function getKeyboardInputs() {
     let joyVec = createVector(0, 0);
     let isBtn = simButtonPressed;
     
     simButtonPressed = false;
 
-    // Movimiento (Flechas o WASD)
+    // Movimiento con Flechas o WASD
     if (keyIsDown(LEFT_ARROW) || keyIsDown(65)) joyVec.x -= 1;  
     if (keyIsDown(RIGHT_ARROW) || keyIsDown(68)) joyVec.x += 1; 
     if (keyIsDown(UP_ARROW) || keyIsDown(87)) joyVec.y -= 1;     
@@ -161,7 +160,7 @@ function getKeyboardInputs() {
     return { joyVec: joyVec, isBtnPressed: isBtn };
 }
 
-// Tecla ESPACIO para disparar la Explosión
+// Tecla ESPACIO para detonar la explosión
 window.keyPressed = function() {
     if (keyCode === 32) { 
         simButtonPressed = true;
@@ -201,5 +200,4 @@ function explodeParticles(attractor, isOverload, currentEncRaw) {
 
 window.windowResized = function() {
     resizeCanvas(windowWidth, windowHeight);
-
 };
