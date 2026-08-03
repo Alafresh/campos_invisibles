@@ -195,4 +195,5 @@ function explodeParticles(attractor, isOverload, currentEncRaw) {
 
 window.windowResized = function() {
     resizeCanvas(windowWidth, windowHeight);
+    
 };
