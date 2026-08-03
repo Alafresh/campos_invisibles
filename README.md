@@ -83,3 +83,20 @@ Se propone un ciclo de desarrollo ágil y en paralelo de **2 semanas** hasta la 
 ## 🚀 Prototipo
 
 Como parte de esta prueba técnica, se ha desarrollado un prototipo inicial a pequeña escala que demuestra la viabilidad de la comunicación Hardware-Software y la estabilidad del motor físico gravitacional
+
+> **Nota importante:** El **prototipo físico** es la versión principal de la prueba con todo el sistema integrado, mientras que esta **demo web** es una versión creada específicamente para facilitar que los evaluadores puedan ver y probar el funcionamiento del proyecto de forma sencilla sin necesidad de contar con el hardware físico.
+
+## 💡 Diferencias Clave: Demo Web vs. Prototipo Físico
+
+* **Prototipo Físico Original:** Es la versión oficial de la prueba. Cuenta con una arquitectura completa diseñada para **3 jugadores simultáneos**, integrada mediante microcontroladores (Arduino) con joysticks analógicos, encoders rotatorios físicos dedicados al control de masa, y botones arcade independientes para cada uno de los tres atractores del ecosistema.
+* **Demo Web:** Versión alternativa diseñada para **1 jugador** a través del teclado de un computador. Está optimizada para despliegues rápidos en la nube (como Vercel) y pensada para facilitar que los evaluadores puedan revisar el proyecto fácilmente sin el hardware.
+
+
+### 🎮 Controles del Demo Web (1 Jugador)
+
+Dado que esta versión está optimizada para ejecutarse en un entorno web de escritorio, los controles de la instalación física se han mapeado al teclado de la siguiente manera:
+
+* **Movimiento:** Usa las **Flechas del teclado** o las teclas **W, A, S, D** para desplazar libremente el atractor por la pantalla.
+* **Disminuir Tamaño / Masa:** Mantén presionada la tecla **`Q`** para reducir la masa del atractor.
+* **Aumentar Tamaño / Masa:** Mantén presionada la tecla **`E`** para incrementar la masa del atractor y permitirle absorber más partículas en su órbita.
+* **Explosión:** Presiona la barra **Espacio** para detonar de forma manual la liberación de partículas acumuladas.
