@@ -47,6 +47,7 @@ El hardware está pensado para soportar la interacción de 1 a 3 visitantes en s
 | **Sensórica** | Módulo Joystick Analógico | 3 | Control vectorial continuo (x, y) para desplazar los atractores en el lienzo. |
 | **Sensórica** | Pulsador Rojo Chasis Corto NA (12.5mm) | 3 | Gatillo de acción instantánea para eventos de colapso/explosión gravitacional. |
 | **Salida A/V** | Proyector HDMI (Ej. marca Redflag) | 1 | Proyección de la experiencia sobre la superficie física del espacio de 5m². |
+| **Salida A/V** | Altavoz Bluetooth/Aux (JBL Flip 5) | 1 | Reproducción de la ambientación y voz en off de la experiencia. |
 | **Conectividad** | Cables de video (Micro-HDMI a HDMI / HDMI a HDMI) | 2 | Enrutamiento de señal de video dependiendo de si el render se hace desde la Raspberry Pi o desde el PC. |
 | **Ensamblaje** | Protoboard, Cables Jumper (~80x), Tornillería (12x) | Kit | Materiales para el prototipado rápido, ruteo electrónico y fijación mecánica de los módulos. |
 
@@ -59,10 +60,10 @@ Para la proyeccion de la experiencia en el espacio de 5m² dentro de la sala, se
 | Categoría | Concepto | Costo Estimado |
 | :--- | :--- | :--- |
 | **Componentes (Electrónica)** | Raspberry Pi 4, Arduino Mega, Encoders, Joysticks, Botones, Cableado, Fuentes de alimentación. | $ 576,000 COP |
-| **Componentes (A/V)** | Proyector, cableado de video. | $ 200,000 COP |
+| **Componentes (A/V)** | Proyector, cableado de video, Altavoz JBL Flip 5. | $ 600,000 COP |
 | **Licencias de Software** | Node.js, p5.js, Arduino IDE, PM2, OS Linux. | **$ 0** (100% Open Source) |
 | **Fabricación Local** | Construcción del mobiliario (quiosco) | $ 720,000  COP |
-| **TOTAL ESTIMADO** | | **$ 1,496,000 COP** |
+| **TOTAL ESTIMADO** | | **$ 1,896,000 COP** |
 
 ### 🧩 Matriz de Ejecución
 
