@@ -94,6 +94,6 @@ Como parte de esta prueba técnica, se ha desarrollado un prototipo inicial a pe
 * **Demo Web:** Versión para **1 jugador** diseñada específicamente para que los evaluadores prueben el funcionamiento del ecosistema sin necesidad de hardware. Despliegue en la nube optimizado para navegador. [Pruébalo en este enlace](https://campos-invisibles.vercel.app/).
 
 **Controles de la Demo Web (Teclado):**
-* **Movimiento:** Flechas direccionales (`→` `←` `↑` `↓`) o `W` `A` `S` `D`.
+* **Movimiento:** Flechas direccionales (`→` `←` `↑` `↓`).
 * **Masa:** Mantén presionada `Q` (Disminuir) o `E` (Aumentar) para ajustar la capacidad de absorción del atractor.
 * **Explosión:** Barra `Espaciadora` para detonar manualmente la materia acumulada.
