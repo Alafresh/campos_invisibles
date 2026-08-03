@@ -87,8 +87,7 @@ Como parte de esta prueba técnica, se ha desarrollado un prototipo inicial a pe
 > **Nota importante:** El **prototipo físico** es la versión principal de la prueba con todo el sistema integrado, mientras que esta **demo web** es una versión creada específicamente para facilitar que los evaluadores puedan ver y probar el funcionamiento del proyecto de forma sencilla sin necesidad de contar con el hardware físico.
 
 * **Prototipo Físico Original (Oficial):** Arquitectura completa diseñada para **3 jugadores simultáneos**, integrada mediante microcontroladores (Arduino) con hardware dedicado (joysticks, encoders rotatorios y botones arcade) para cada atractor del ecosistema.
-[!gif_prototipo](./public/images/gif_prototipo.gif)
-[!gif_prototipo2](./public/images/Gif_prototipo_2.gif)
+![gif_prototipo](./public/images/gif_prototipo.gif)
 ![imagen controles](./public/images/Prototipo.jpeg)
 
 * **Demo Web (Alternativa de evaluación):** Versión para **1 jugador** diseñada específicamente para que los evaluadores prueben el funcionamiento del ecosistema sin necesidad de hardware. Despliegue en la nube optimizado para navegador. [Pruébalo en este enlace](https://campos-invisibles.vercel.app/).
