@@ -1,158 +1,217 @@
-// js/Attractor.js
 import { CONFIG } from './Config.js';
+import { Particle } from './Particle.js';
+import { Attractor } from './Attractor.js';
+import { PhysicsManager } from './PhysicsManager.js';
+import { getNextSequentialPreset, getForcePreset } from './Presets.js';
+import { AudioManager } from './AudioManager.js';
 
-export class Attractor {
-    constructor(id, x, y, colorCode) {
-        this.id = id;
-        this.pos = createVector(x, y);
-        this.vel = createVector(0, 0);
-        this.acc = createVector(0, 0);
-        
-        this.mass = CONFIG.MIN_ATTRACTOR_MASS; 
-        this.color = color(colorCode);
-        this.joystickSensitivity = 0.8; 
-        
-        // Almacena los objetos partícula reales
-        this.orbitingParticles = [];
-        
-        this.baseCapacity = 180;     
-        this.maxCapacity = 180;      
-        
-        this.encoderOffset = 0;     
-        
-        this.isAwake = false;
-        this.idleFrames = 0;
-        this.lastEncVal = 0;
-        
-        this.cooldown = 0;       
-        this.flashAlpha = 0;     
+let physicsManager;
+let audioManager;
+let stardust = [];
+let userAttractors = [];
+let shakeTime = 0;
+
+let bgImages = [];
+let currentBg;
+
+// Variables de estado para el teclado
+let simEncoderVal = 0;
+let simButtonPressed = false;
+let increaseMass = false;
+let decreaseMass = false;
+
+window.setup = function() {
+    createCanvas(windowWidth, windowHeight);
+    ellipseMode(CENTER);
+    
+    let paths = ['./SkyBox_1_169.png', './SkyBox_2_169.png', './SkyBox_3_169.png'];
+    paths.forEach(path => {
+        loadImage(path, (img) => {
+            bgImages.push(img);
+            if (!currentBg) {
+                currentBg = img;
+            }
+        });
+    });
+    
+    physicsManager = new PhysicsManager();
+    audioManager = new AudioManager(); 
+
+    for (let i = 0; i < CONFIG.TOTAL_PARTICLES; i++) {
+        let species = int(random(CONFIG.NUM_SPECIES)); 
+        stardust.push(new Particle(random(width), random(height), species));
     }
 
-    update(joyVec, encVal) { 
-        if (this.cooldown > 0) {
-            this.cooldown--;
-            this.isAwake = false;
-            this.vel.mult(0.92);
-            this.pos.add(this.vel);
-        } else {
-            let isInputActive = (joyVec.magSq() > 0) || (encVal !== this.lastEncVal);
-            this.lastEncVal = encVal;
+    // Creamos UN SOLO atractor centrado en la pantalla para el demo web
+    userAttractors.push(new Attractor(0, width * 0.5, height * 0.5, '#FF3366'));
 
-            if (isInputActive) {
-                this.isAwake = true;
-                this.idleFrames = 0;
-            } else {
-                this.idleFrames++;
-                if (this.idleFrames > 600) { 
-                    this.isAwake = false;
-                }
-            }
+    // Ecosistema muta cada 1 minuto
+    setInterval(changeRandomPreset, 1 * 60 * 1000);
 
-            if (this.isAwake) {
-                this.acc.add(joyVec.mult(this.joystickSensitivity));
-            }
-            this.vel.mult(0.92); 
-            this.vel.add(this.acc);
-            this.pos.add(this.vel);
-            this.acc.mult(0); 
+    // Voz en off suena cada 3 minutos independientes
+    setInterval(() => {
+        if (audioManager && audioManager.isInitialized) {
+            audioManager.playVoiceOver();
         }
+    }, 3 * 60 * 1000);
+};
 
-        if (this.pos.x < 0) { this.pos.x = width; } 
-        else if (this.pos.x > width) { this.pos.x = 0; }
-        if (this.pos.y < 0) { this.pos.y = height; } 
-        else if (this.pos.y > height) { this.pos.y = 0; }
-
-        let netEncoder = encVal - this.encoderOffset;
-        this.mass = CONFIG.MIN_ATTRACTOR_MASS + Math.max(0, netEncoder * 2.5);
-
-        let massFactor = (this.mass - CONFIG.MIN_ATTRACTOR_MASS);
-        this.maxCapacity = Math.max(10, this.baseCapacity - (massFactor * 0.3));
-
-        if (this.flashAlpha > 0) {
-            this.flashAlpha -= 15; 
-        }
+window.draw = function() {
+    background(0, 0, 0, 45); 
+    
+    if (currentBg && currentBg.width > 0) {
+        push();
+        tint(255, 35); 
+        let noiseX = noise(frameCount * 0.003) * 40 - 20;
+        let noiseY = noise(frameCount * 0.003 + 500) * 40 - 20;
+        image(currentBg, noiseX - 20, noiseY - 20, width + 40, height + 40);
+        pop();
+    }
+    
+    push(); 
+    if (shakeTime > 0) {
+        translate(random(-10, 10), random(-10, 10)); 
+        shakeTime--;
     }
 
-    display() {
-        let visualSize = map(this.mass, CONFIG.MIN_ATTRACTOR_MASS, 500, 20, 150, true);
-        
-        let fillRatio = constrain(this.orbitingParticles.length / this.maxCapacity, 0, 1);
+    physicsManager.applyFrictionlessPhysics(stardust, userAttractors);
 
-        push();
-        colorMode(HSB, 360, 100, 100, 255);
-        let h = hue(this.color);
-        let s = map(fillRatio, 0, 1, 40, 100);
-        // Este valor sube de 100 a 255 según se va llenando de partículas
-        let dynamicAlpha = this.isAwake ? map(fillRatio, 0, 1, 100, 255) : 50;
+    // Actualizar valor simulado del encoder según las teclas Q y E
+    if (decreaseMass) simEncoderVal -= 3;
+    if (increaseMass) simEncoderVal += 3;
+    
+    // Evitar valores negativos en el acumulador
+    simEncoderVal = Math.max(0, simEncoderVal);
 
-        // 1. Dibujar el disco de acreción exterior
-        this.drawNeonGlow(h, s, dynamicAlpha, visualSize);
+    let { joyVec, isBtnPressed } = getKeyboardInputs();
 
-        // 2. DIBUJAR PARTÍCULAS ORBITANDO
-        push();
-        translate(this.pos.x, this.pos.y);
-        rotate(frameCount * 0.015 + this.id); 
-        blendMode(ADD); 
-        
-        for (let p of this.orbitingParticles) {
-            p.orbitAngle += p.orbitSpeed;
+    if (!audioManager.isInitialized && (joyVec.magSq() > 0 || isBtnPressed || increaseMass || decreaseMass)) {
+        audioManager.init();
+    }
+    
+    let attractor = userAttractors[0];
+    
+    attractor.update(joyVec, simEncoderVal);
+    attractor.display();
+
+    if (attractor.isAwake) {
+        for (let j = stardust.length - 1; j >= 0; j--) {
+            let p = stardust[j];
+            let distSq = (p.pos.x - attractor.pos.x)**2 + (p.pos.y - attractor.pos.y)**2;
+            let captureRadius = 5; 
             
-            let px = cos(p.orbitAngle) * p.orbitRadius;
-            let py = sin(p.orbitAngle) * p.orbitRadius * 0.55;
-
-            let pxPrev = cos(p.orbitAngle - p.orbitSpeed * 4) * p.orbitRadius;
-            let pyPrev = sin(p.orbitAngle - p.orbitSpeed * 4) * p.orbitRadius * 0.55;
-
-            stroke(p.color); 
-            strokeWeight(2);
-            line(pxPrev, pyPrev, px, py);
+            if (distSq < captureRadius * captureRadius) {
+                let capturedParticle = stardust.splice(j, 1)[0]; 
+                let visualSize = map(attractor.mass, CONFIG.MIN_ATTRACTOR_MASS, 500, 20, 150, true);
+                capturedParticle.orbitAngle = random(TWO_PI);
+                capturedParticle.orbitRadius = random(visualSize * 0.7, visualSize * 2.2);
+                capturedParticle.orbitSpeed = random(0.03, 0.1);
+                attractor.orbitingParticles.push(capturedParticle);
+            }
         }
-        pop();
 
-        // 3. Dibujar el horizonte de sucesos (Agujero Negro)
-        fill(0); 
+        if (attractor.orbitingParticles.length >= attractor.maxCapacity) {
+            explodeParticles(attractor, true, simEncoderVal); 
+        } else if (isBtnPressed) {
+            if (attractor.orbitingParticles.length > 0) {
+                explodeParticles(attractor, false, simEncoderVal); 
+            }
+        }
         
-        // --- CAMBIO AQUÍ: Usamos dynamicAlpha en el stroke del borde ---
-        stroke(h, 100, 100, dynamicAlpha); 
-        strokeWeight(3.5); 
-        circle(this.pos.x, this.pos.y, visualSize);
-        pop();
-
-        // Destello por sobrecarga
-        if (this.flashAlpha > 0) {
-            push();
-            colorMode(HSB, 360, 100, 100, 255);
-            fill(h, 30, 100, this.flashAlpha * 0.4);
-            noStroke();
-            circle(this.pos.x, this.pos.y, visualSize * 3.2);
-
-            fill(255, this.flashAlpha); 
-            circle(this.pos.x, this.pos.y, visualSize * 1.5);
-            pop();
+    } else {
+        if (attractor.orbitingParticles.length > 0 && frameCount % 3 === 0) {
+            let p = attractor.orbitingParticles.pop();
+            p.pos.x = attractor.pos.x;
+            p.pos.y = attractor.pos.y;
+            p.vel = p5.Vector.random2D().mult(random(0.2, 0.8)); 
+            stardust.push(p);
         }
     }
 
-    drawNeonGlow(h, s, baseAlpha, visualSize) {
-        push();
-        translate(this.pos.x, this.pos.y);
-        rotate(frameCount * 0.015 + this.id); 
+    blendMode(ADD); 
+    for (let particle of stardust) {
+        particle.display(); 
+    }
+    blendMode(BLEND); 
 
-        let layers = 6;
-        noStroke();
+    pop(); 
 
-        for (let i = layers; i >= 1; i--) {
-            let rOuter = map(i, 1, layers, visualSize * 0.6, visualSize * 2.0);
-            let layerAlpha = (baseAlpha / layers) * (1 - i / (layers + 2)) * 0.7;
+    for (let particle of stardust) {
+        particle.integrate(); 
+    }
+};
 
-            fill(h, s, 100, layerAlpha);
-            ellipse(0, 0, rOuter * 2, rOuter * 0.55);
-        }
+// --- CONTROLADOR POR TECLADO ---
+function getKeyboardInputs() {
+    let joyVec = createVector(0, 0);
+    let isBtn = simButtonPressed;
+    
+    simButtonPressed = false;
 
-        stroke(h, s * 0.6, 100, baseAlpha * 0.8);
-        strokeWeight(1.5);
-        noFill();
-        ellipse(0, 0, visualSize * 1.4, visualSize * 0.75);
-        
-        pop();
+    // Movimiento con Flechas o WASD
+    if (keyIsDown(LEFT_ARROW) || keyIsDown(65)) joyVec.x -= 1;  
+    if (keyIsDown(RIGHT_ARROW) || keyIsDown(68)) joyVec.x += 1; 
+    if (keyIsDown(UP_ARROW) || keyIsDown(87)) joyVec.y -= 1;     
+    if (keyIsDown(DOWN_ARROW) || keyIsDown(83)) joyVec.y += 1;   
+
+    if (joyVec.magSq() > 0) joyVec.normalize();
+
+    return { joyVec: joyVec, isBtnPressed: isBtn };
+}
+
+// Eventos robustos de teclado mediante banderas para Q, E y Espacio
+window.keyPressed = function() {
+    if (keyCode === 32) { 
+        simButtonPressed = true; // Espacio
+    }
+    if (key === 'e' || key === 'E' || keyCode === 69) {
+        increaseMass = true;
+    }
+    if (key === 'q' || key === 'Q' || keyCode === 81) {
+        decreaseMass = true;
+    }
+};
+
+window.keyReleased = function() {
+    if (key === 'e' || key === 'E' || keyCode === 69) {
+        increaseMass = false;
+    }
+    if (key === 'q' || key === 'Q' || keyCode === 81) {
+        decreaseMass = false;
+    }
+};
+
+function changeRandomPreset() {
+    const nextPresetId = getNextSequentialPreset(); 
+    CONFIG.INTERACTION_MATRIX = getForcePreset(nextPresetId, CONFIG.NUM_SPECIES);
+    
+    if (bgImages.length > 0) {
+        currentBg = random(bgImages);
+    }
+    
+    console.log(`[Campos Invisibles] Ecosistema mutado. Preset ID: ${nextPresetId}`);
+}
+
+function explodeParticles(attractor, isOverload, currentEncRaw) {
+    let amountToShoot = isOverload ? attractor.orbitingParticles.length : Math.min(15, attractor.orbitingParticles.length);
+    
+    for (let i = 0; i < amountToShoot; i++) {
+        let p = attractor.orbitingParticles.shift(); 
+        p.pos.x = attractor.pos.x;
+        p.pos.y = attractor.pos.y;
+        let explosionForce = isOverload ? random(35, 55) : random(25, 35);
+        p.vel = p5.Vector.random2D().mult(explosionForce); 
+        stardust.push(p); 
+    }
+    
+    if (isOverload) {
+        attractor.flashAlpha = 255; 
+        attractor.cooldown = 120; 
+        shakeTime = 25; 
+        attractor.encoderOffset = currentEncRaw; 
     }
 }
+
+window.windowResized = function() {
+    resizeCanvas(windowWidth, windowHeight);
+};
