@@ -14,9 +14,11 @@ let shakeTime = 0;
 let bgImages = [];
 let currentBg;
 
-// Variables de estado para simular el Encoder y el Botón con el teclado
+// Variables de estado para el teclado
 let simEncoderVal = 0;
 let simButtonPressed = false;
+let increaseMass = false;
+let decreaseMass = false;
 
 window.setup = function() {
     createCanvas(windowWidth, windowHeight);
@@ -74,24 +76,21 @@ window.draw = function() {
 
     physicsManager.applyFrictionlessPhysics(stardust, userAttractors);
 
-    // Obtenemos entradas de movimiento y botones
+    // Actualizar valor simulado del encoder según las teclas Q y E
+    if (decreaseMass) simEncoderVal -= 3;
+    if (increaseMass) simEncoderVal += 3;
+    
+    // Evitar valores negativos en el acumulador
+    simEncoderVal = Math.max(0, simEncoderVal);
+
     let { joyVec, isBtnPressed } = getKeyboardInputs();
 
-    // Actualizar el valor acumulado del encoder con Q y E
-    if (keyIsDown(81)) { // Q: Reduce masa (encoder atrás)
-        simEncoderVal -= 2;
-    }
-    if (keyIsDown(69)) { // E: Aumenta masa (encoder adelante)
-        simEncoderVal += 2;
-    }
-
-    if (!audioManager.isInitialized && (joyVec.magSq() > 0 || isBtnPressed || keyIsDown(81) || keyIsDown(69))) {
+    if (!audioManager.isInitialized && (joyVec.magSq() > 0 || isBtnPressed || increaseMass || decreaseMass)) {
         audioManager.init();
     }
     
     let attractor = userAttractors[0];
     
-    // Pasamos el vector de movimiento y el acumulador del encoder simulado
     attractor.update(joyVec, simEncoderVal);
     attractor.display();
 
@@ -160,10 +159,25 @@ function getKeyboardInputs() {
     return { joyVec: joyVec, isBtnPressed: isBtn };
 }
 
-// Tecla ESPACIO para detonar la explosión
+// Eventos robustos de teclado mediante banderas para Q, E y Espacio
 window.keyPressed = function() {
     if (keyCode === 32) { 
-        simButtonPressed = true;
+        simButtonPressed = true; // Espacio
+    }
+    if (key === 'e' || key === 'E' || keyCode === 69) {
+        increaseMass = true;
+    }
+    if (key === 'q' || key === 'Q' || keyCode === 81) {
+        decreaseMass = true;
+    }
+};
+
+window.keyReleased = function() {
+    if (key === 'e' || key === 'E' || keyCode === 69) {
+        increaseMass = false;
+    }
+    if (key === 'q' || key === 'Q' || keyCode === 81) {
+        decreaseMass = false;
     }
 };
 
