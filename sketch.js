@@ -46,7 +46,7 @@ window.setup = function() {
     userAttractors.push(new Attractor(0, width * 0.5, height * 0.5, '#FF3366'));
 
     // Ecosistema muta cada 1 minuto
-    setInterval(changeRandomPreset, 1 * 60 * 1000);
+    setInterval(changeRandomPreset, 0.5 * 60 * 1000);
 
     // Voz en off suena cada 3 minutos independientes
     setInterval(() => {
